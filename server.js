@@ -15,7 +15,7 @@ const RUNTIME_TEMP_DIR = path.join(__dirname, "runtime_tmp");
 const resolveCache = new Map();
 const inFlightResolves = new Map();
 const ffmpegExecutable = findFfmpegExecutable();
-const ytDlpExecutable = findYtDlpExecutable();
+const ytDlpCommand = findYtDlpCommand();
 const processJobs = new Map();
 
 try {
@@ -47,6 +47,19 @@ function createHttpError(statusCode, message) {
   const error = new Error(message);
   error.statusCode = Number(statusCode) || 500;
   return error;
+}
+
+function isProcessExecError(error) {
+  const code = String(error?.code || "").toUpperCase();
+  return code === "EPERM" || code === "EACCES" || code === "ENOENT";
+}
+
+function normalizeProcessError(error, fallbackMessage) {
+  if (error?.statusCode) return error;
+  if (isProcessExecError(error)) {
+    return createHttpError(502, "May chu khong the chay yt-dlp (EPERM/EACCES/ENOENT).");
+  }
+  return createHttpError(502, fallbackMessage || error?.message || "Loi khi chay lenh he thong.");
 }
 
 function findExecutableInPath(binaryName) {
@@ -105,6 +118,29 @@ function hasFfmpeg() {
   return !!ffmpegExecutable;
 }
 
+function findPythonExecutable() {
+  const candidates = process.platform === "win32"
+    ? ["python", "python3", "py"]
+    : ["python3", "python"];
+  for (const name of candidates) {
+    const found = findExecutableInPath(name);
+    if (found) return found;
+  }
+  return "";
+}
+
+function canRunCommand(executable, args = []) {
+  try {
+    const probe = spawnSync(executable, args, {
+      stdio: ["ignore", "pipe", "ignore"],
+      windowsHide: true
+    });
+    return probe.status === 0;
+  } catch {
+    return false;
+  }
+}
+
 function findYtDlpExecutable() {
   const fromEnv = process.env.YTDLP_PATH;
   if (fromEnv) {
@@ -144,6 +180,37 @@ function findYtDlpExecutable() {
   }
 
   return "";
+}
+
+function findYtDlpCommand() {
+  const direct = findYtDlpExecutable();
+  if (direct && canRunCommand(direct, ["--version"])) {
+    return {
+      executable: direct,
+      prefixArgs: [],
+      mode: "binary"
+    };
+  }
+
+  const python = findPythonExecutable();
+  if (!python) return null;
+
+  try {
+    const probe = spawnSync(python, ["-m", "yt_dlp", "--version"], {
+      stdio: ["ignore", "pipe", "ignore"],
+      windowsHide: true
+    });
+    if (probe.status === 0) {
+      return {
+        executable: python,
+        prefixArgs: ["-m", "yt_dlp"],
+        mode: "python_module"
+      };
+    }
+  } catch {
+    // Ignore.
+  }
+  return null;
 }
 
 function createJobId() {
@@ -852,11 +919,13 @@ function runCommandCapture(executable, args) {
     proc.stderr.on("data", (chunk) => {
       stderr += String(chunk || "");
     });
-    proc.on("error", reject);
+    proc.on("error", (error) => {
+      reject(normalizeProcessError(error, "Khong the khoi dong yt-dlp."));
+    });
     proc.on("close", (code) => {
       fs.promises.rm(isolatedTempDir, { recursive: true, force: true }).catch(() => {});
       if (code === 0) resolve({ stdout, stderr });
-      else reject(new Error(stderr || `Process exited with ${code}`));
+      else reject(createHttpError(502, stderr || `yt-dlp exited with ${code}`));
     });
   });
 }
@@ -1159,7 +1228,7 @@ function postProcessByPlatform(result, platform) {
 }
 
 async function downloadViaYtDlpToFile(pageUrl, outputPath) {
-  if (!ytDlpExecutable) {
+  if (!ytDlpCommand) {
     throw createHttpError(502, "Chua tim thay yt-dlp de tai TikTok.");
   }
 
@@ -1178,7 +1247,7 @@ async function downloadViaYtDlpToFile(pageUrl, outputPath) {
       "-o", outputPath,
       pageUrl
     ];
-    const proc = spawn(ytDlpExecutable, args, {
+    const proc = spawn(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, ...args], {
       windowsHide: true,
       env: {
         ...process.env,
@@ -1190,7 +1259,7 @@ async function downloadViaYtDlpToFile(pageUrl, outputPath) {
     proc.stderr.on("data", (chunk) => {
       stderr += String(chunk || "");
     });
-    proc.on("error", () => reject(createHttpError(500, "Khong chay duoc yt-dlp.")));
+    proc.on("error", (error) => reject(normalizeProcessError(error, "Khong chay duoc yt-dlp.")));
     proc.on("close", (code) => {
       fs.promises.rm(isolatedTempDir, { recursive: true, force: true }).catch(() => {});
       if (code === 0) resolve();
@@ -1200,7 +1269,7 @@ async function downloadViaYtDlpToFile(pageUrl, outputPath) {
 }
 
 async function resolveViaYtDlp(url) {
-  if (!ytDlpExecutable) return null;
+  if (!ytDlpCommand) return null;
 
   const args = [
     "--dump-single-json",
@@ -1209,8 +1278,13 @@ async function resolveViaYtDlp(url) {
     url
   ];
 
-  const { stdout } = await runCommandCapture(ytDlpExecutable, args);
-  const info = JSON.parse(stdout || "{}");
+  const { stdout } = await runCommandCapture(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, ...args]);
+  let info = {};
+  try {
+    info = JSON.parse(stdout || "{}");
+  } catch {
+    throw createHttpError(502, "yt-dlp tra ve JSON khong hop le.");
+  }
   const qualities = buildQualitiesFromYtDlpInfo(info);
   if (!qualities.length) return null;
 
@@ -1298,6 +1372,7 @@ async function resolveFacebookVideo(url) {
 async function resolveVideoByPlatform(url) {
   const normalized = normalizeInputUrl(url);
   const platform = detectPlatform(normalized);
+  let lastError = null;
 
   if (platform === "unknown") {
     throw createHttpError(400, "Link khong thuoc nen tang duoc ho tro.");
@@ -1313,14 +1388,18 @@ async function resolveVideoByPlatform(url) {
   }
 
   if (platform === "youtube") {
-    const ytdlpFirst = await resolveViaYtDlp(normalized);
-    if (ytdlpFirst?.qualities?.length) {
-      return postProcessByPlatform({
-        ...ytdlpFirst,
-        source_page_url: normalized,
-        resolver: "yt_dlp",
-        platform
-      }, platform);
+    try {
+      const ytdlpFirst = await resolveViaYtDlp(normalized);
+      if (ytdlpFirst?.qualities?.length) {
+        return postProcessByPlatform({
+          ...ytdlpFirst,
+          source_page_url: normalized,
+          resolver: "yt_dlp",
+          platform
+        }, platform);
+      }
+    } catch (error) {
+      lastError = normalizeProcessError(error, "Khong the doc du lieu YouTube bang yt-dlp.");
     }
   }
 
@@ -1347,21 +1426,32 @@ async function resolveVideoByPlatform(url) {
         platform
       }, platform);
     }
-  } catch {
-    // Continue to yt-dlp fallback.
+  } catch (error) {
+    if (!lastError) lastError = normalizeProcessError(error, "Khong the lay du lieu tu sora2dl.");
   }
 
-  const ytdlp = await resolveViaYtDlp(normalized);
-  if (ytdlp?.qualities?.length) {
-    return postProcessByPlatform({
-      ...ytdlp,
-      source_page_url: normalized,
-      resolver: "yt_dlp",
-      platform
-    }, platform);
+  try {
+    const ytdlp = await resolveViaYtDlp(normalized);
+    if (ytdlp?.qualities?.length) {
+      return postProcessByPlatform({
+        ...ytdlp,
+        source_page_url: normalized,
+        resolver: "yt_dlp",
+        platform
+      }, platform);
+    }
+  } catch (error) {
+    lastError = normalizeProcessError(error, "Khong the doc nguon video bang yt-dlp.");
   }
 
-  throw createHttpError(500, "Khong tim thay nguon video hop le.");
+  if (lastError) {
+    throw createHttpError(
+      Number(lastError.statusCode) || 502,
+      lastError.message || "Khong tim thay nguon video hop le."
+    );
+  }
+
+  throw createHttpError(502, "Khong tim thay nguon video hop le.");
 }
 
 function isUnsafeHostname(hostname) {
@@ -1888,6 +1978,6 @@ server.listen(PORT, () => {
   } else {
     console.log("[boot] ffmpeg not found (720p co tieng van tai duoc)");
   }
-  console.log(`[boot] yt-dlp=${ytDlpExecutable || "(not found)"}`);
+console.log(`[boot] yt-dlp=${ytDlpCommand ? `${ytDlpCommand.executable}${ytDlpCommand.mode === "python_module" ? " (python -m yt_dlp)" : ""}` : "(not found)"}`);
   console.log(`Server running at http://localhost:${PORT}`);
 });

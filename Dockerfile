@@ -7,7 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ffmpeg \
   yt-dlp \
   dumb-init \
+  python3 \
   && rm -rf /var/lib/apt/lists/*
+
+RUN chmod +x /usr/bin/yt-dlp || true
 
 WORKDIR /app
 
