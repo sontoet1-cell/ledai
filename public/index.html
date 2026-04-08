@@ -1,469 +1,412 @@
-<!DOCTYPE html>
-<html lang="vi">
+﻿<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="no-referrer" />
-  <title>Jimeng Downloader</title>
+  <title>Tienich.pro - Hệ Sinh Thái Tải Video Đa Nền Tảng & AI Tools</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --bg-color: #09090b;
-      --text-main: #ffffff;
-      --text-muted: #a1a1aa;
-      --card-bg: #18181b;
-      --card-border: #27272a;
-      --primary-color: #6366f1;
-      --primary-gradient: linear-gradient(90deg, #818cf8, #6366f1);
-      --btn-blue: #3b82f6;
-      --btn-blue-hover: #2563eb;
-    }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
     body {
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background-image: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
+      background-color: #000000;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
       overflow-x: hidden;
     }
-    header {
+    .mystic-bg::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      max-width: 1200px;
-      padding: 20px 40px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: relative;
+      height: 100%;
+      background:
+        radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.08) 0%, transparent 50%);
+      z-index: -1;
+      pointer-events: none;
     }
-    .logo {
-      font-weight: 700;
-      font-size: 1.2rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      z-index: 10;
+    .glass-card {
+      background: rgba(20, 20, 20, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .logo i {
-      font-size: 1.5rem;
-      color: var(--primary-color);
+    .glass-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(139, 92, 246, 0.4);
+      background: rgba(30, 30, 35, 0.8);
+      box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.3);
     }
-    .menu-toggle {
-      display: none;
-      background: none;
-      border: none;
-      color: var(--text-main);
-      font-size: 1.5rem;
-      cursor: pointer;
-      z-index: 10;
-      transition: color 0.3s;
-    }
-    .menu-toggle:hover {
-      color: var(--primary-color);
-    }
-    .nav-container {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 5;
-    }
-    nav {
-      background-color: var(--card-bg);
-      padding: 6px;
-      border-radius: 50px;
-      display: flex;
-      gap: 8px;
-      border: 1px solid var(--card-border);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    }
-    nav a {
-      color: var(--text-muted);
-      text-decoration: none;
-      padding: 8px 24px;
-      border-radius: 50px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: all 0.3s;
-      white-space: nowrap;
-    }
-    nav a:hover { color: var(--text-main); }
-    nav a.active { background-color: #6366f1; color: #fff; }
-    .header-spacer { width: 150px; }
-    main {
-      width: 100%;
-      max-width: 800px;
-      padding: 60px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-    .badge {
-      background-color: rgba(99, 102, 241, 0.1);
-      color: #818cf8;
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      border: 1px solid rgba(99, 102, 241, 0.2);
-      margin-bottom: 20px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .badge::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      background-color: #818cf8;
-      border-radius: 50%;
-    }
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 15px;
-      font-weight: 700;
-    }
-    h1 span {
-      background: var(--primary-gradient);
+    .text-gradient-mystic {
+      background: linear-gradient(to right, #c084fc, #6366f1);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      padding-bottom: 0.1em;
     }
-    .subtitle {
-      color: var(--text-muted);
-      font-size: 1rem;
-      line-height: 1.5;
-      margin-bottom: 40px;
-      max-width: 600px;
+    @keyframes pulse-green {
+      0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
     }
-    .search-box {
-      width: 100%;
-      background-color: var(--card-bg);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      border-radius: 12px;
-      padding: 8px;
-      display: flex;
-      gap: 10px;
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
-      position: relative;
+    .led-active { animation: pulse-green 2s infinite; }
+    #progress-wrap { display: none; }
+    #progress-wrap.active { display: block; }
+    .ext-card {
+      background: linear-gradient(180deg, #0e1117 0%, #0b0e13 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      transition: all 0.25s ease;
     }
-    .input-wrapper {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      background-color: #000;
-      border-radius: 8px;
-      padding: 0 15px;
+    .ext-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(139, 92, 246, 0.35);
+      box-shadow: 0 10px 28px rgba(59, 130, 246, 0.12);
     }
-    .input-wrapper i.fa-link { color: var(--text-muted); }
-    .input-wrapper input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: #fff;
-      padding: 15px 10px;
-      font-size: 1rem;
-      outline: none;
-    }
-    .paste-btn {
-      background: rgba(99, 102, 241, 0.1);
-      color: #818cf8;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      transition: 0.3s;
-    }
-    .paste-btn:hover { background: rgba(99, 102, 241, 0.2); }
-    .submit-btn {
-      background-color: var(--btn-blue);
-      color: #fff;
-      border: none;
-      padding: 0 30px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.3s;
-      min-width: 130px;
-    }
-    .submit-btn:hover { background-color: var(--btn-blue-hover); }
-    .status {
-      margin-top: 15px;
-      font-size: 0.9rem;
-      color: #facc15;
-      min-height: 1.2em;
-    }
-    .features-inline {
-      display: flex;
-      gap: 25px;
-      margin-top: 25px;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-    }
-    .features-inline span {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .features-inline i {
-      color: #10b981;
-      font-size: 0.4rem;
-    }
-    .result {
-      margin-top: 40px;
-      width: 100%;
-    }
-    .result.hidden { display: none; }
-    .result-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 24px;
-      display: flex;
-      gap: 24px;
-      align-items: flex-start;
-      text-align: left;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    .cover {
-      width: 160px;
-      height: 160px;
-      object-fit: cover;
-      border-radius: 12px;
-      background-color: #000;
-    }
-    .meta {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .author {
-      color: #a1a1aa;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      font-family: monospace;
-    }
-    .meta h2 {
-      font-size: 1.2rem;
-      margin-bottom: 20px;
-      color: #fff;
-      line-height: 1.4;
-    }
-    .button.primary {
-      background: var(--primary-gradient);
-      color: #fff;
-      padding: 12px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 0.95rem;
-      font-weight: 700;
-      width: fit-content;
-      margin-bottom: 20px;
-    }
-    #quality-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      width: 100%;
-      border-top: 1px solid var(--card-border);
-      padding-top: 15px;
-    }
-    #quality-list a {
-      padding: 8px 16px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #fff;
-      border: 1px solid #374151;
-      background: #1f2937;
-    }
-    .feature-cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-top: 60px;
-      width: 100%;
-    }
-    .card-item {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 25px;
-      text-align: left;
-      transition: 0.3s;
-    }
-    .card-item:hover { border-color: rgba(99, 102, 241, 0.5); }
-    .card-item i {
-      background-color: #27272a;
-      color: var(--text-main);
+    .social-btn {
       width: 40px;
       height: 40px;
-      display: flex;
+      border-radius: 9999px;
+      background: #11151d;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 10px;
-      font-size: 1.2rem;
-      margin-bottom: 15px;
+      color: #94a3b8;
+      transition: all 0.2s ease;
     }
-    .icon-yellow { color: #facc15 !important; }
-    .icon-green { color: #4ade80 !important; }
-    .icon-blue { color: #60a5fa !important; }
-    .card-item h3 { font-size: 1.1rem; margin-bottom: 10px; }
-    .card-item p { color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; }
-    footer {
-      margin-top: auto;
-      padding: 30px;
-      text-align: center;
-      color: #52525b;
-      font-size: 0.85rem;
-      border-top: 1px solid var(--card-border);
-      width: 100%;
-      max-width: 800px;
-      line-height: 1.8;
+    .social-btn:hover {
+      color: #ffffff;
+      border-color: rgba(99, 102, 241, 0.5);
+      background: #171c27;
     }
-    .copyright { color: #a1a1aa; font-weight: 700; }
-    @media (max-width: 850px) {
-      header { padding: 20px; flex-direction: row; }
-      .menu-toggle { display: block; }
-      .header-spacer { display: none; }
-      .nav-container {
-        position: absolute;
-        top: 70px;
-        right: 20px;
-        left: auto;
-        transform: none;
-        width: 220px;
-        background-color: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        opacity: 0;
-        visibility: hidden;
-        transform: translateY(-10px);
-        transition: all 0.3s ease;
-      }
-      .nav-container.active {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
-      }
-      nav { flex-direction: column; background: transparent; border: none; box-shadow: none; padding: 10px; gap: 5px; }
-      nav a { width: 100%; text-align: left; padding: 12px 20px; border-radius: 8px; }
-      .feature-cards { grid-template-columns: 1fr; }
-      .search-box { flex-direction: column; }
-      .submit-btn { padding: 15px; }
-      .features-inline { flex-direction: column; gap: 10px; }
-      .result-card { flex-direction: column; text-align: center; align-items: center; }
-      .meta { align-items: center; }
-      .button.primary { margin: 0 auto 20px auto; }
-      #quality-list { justify-content: center; }
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #0f131a;
+      color: #94a3b8;
+      font-size: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    #download-best {
+      min-width: 220px;
+      min-height: 46px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 24px rgba(79, 70, 229, 0.28);
+      letter-spacing: 0.2px;
+    }
+    #download-best[data-mode="ready"],
+    #download-best[data-mode="direct"] {
+      background: linear-gradient(90deg, #059669, #10b981) !important;
+      box-shadow: 0 10px 24px rgba(5, 150, 105, 0.3);
+    }
+    #download-best[data-mode="processing"] {
+      opacity: 0.82;
+      pointer-events: none;
+    }
+    #quality-list {
+      gap: 10px;
+      padding-top: 14px;
+    }
+    #quality-list a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+      text-decoration: none;
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.35);
     }
   </style>
 </head>
-<body>
-  <header>
-    <div class="logo"><i class="fa-solid fa-play"></i> TIENICH.PRO</div>
-    <button class="menu-toggle" id="mobile-menu-btn"><i class="fa-solid fa-bars"></i></button>
-    <div class="nav-container" id="nav-menu">
-      <nav>
-        <a href="#">Trang chu</a>
-        <a href="#">Facebook</a>
-        <a href="#" class="active">Jimeng AI</a>
-        <a href="#">TikTok</a>
-        <a href="#">Youtube</a>
-      </nav>
+<body class="mystic-bg min-h-screen flex flex-col">
+  <header class="w-full max-w-7xl mx-auto px-4 py-6 relative z-10">
+    <div class="flex items-center justify-center gap-3">
+      <div class="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
+        <i class="fas fa-cube text-white text-lg"></i>
+      </div>
+      <div class="flex flex-col items-start">
+        <span class="font-bold text-xl tracking-tight text-white">TIENICH<span class="text-violet-500">.PRO</span></span>
+        <span class="text-[10px] text-slate-500 tracking-wider uppercase font-medium">download all video</span>
+      </div>
     </div>
-    <div class="header-spacer"></div>
   </header>
 
-  <main class="page">
-    <div class="badge">He sinh thai Tienich.pro</div>
-    <h1>Tai Video <span>Jimeng AI</span></h1>
-    <p class="subtitle">
-      Ho tro tai xuong video Jimeng (Seedance), chat luong HD/4K.
+  <main class="flex-grow w-full max-w-7xl mx-auto px-4 pt-8 md:pt-12 pb-20 flex flex-col items-center relative z-10">
+    <h1 class="text-4xl md:text-5xl font-extrabold text-center tracking-tight text-white mb-4">
+      Tải Video <span class="text-gradient-mystic">Đa Nền Tảng</span>
+    </h1>
+    <p class="text-slate-400 text-sm md:text-base text-center max-w-2xl leading-relaxed mb-8">
+      Hỗ trợ tải all từ Facebook, TikTok, Jimeng, Douyin, YouTube. Tự động chọn chất lượng cao nhất và tải nhanh.
     </p>
 
-    <section class="panel" style="width: 100%;">
-      <form id="download-form" class="search-box">
-        <div class="input-wrapper">
-          <i class="fa-solid fa-link"></i>
-          <input id="url" name="url" type="text" placeholder="Dan lien ket Jimeng vao day..." autocomplete="off" required />
-          <button type="button" class="paste-btn" onclick="navigator.clipboard.readText().then(text => document.getElementById('url').value = text)">
-            <i class="fa-solid fa-clipboard"></i> Dan
+    <section class="w-full max-w-4xl glass-card rounded-3xl p-5 md:p-6 mb-8">
+      <form id="download-form" class="w-full">
+        <div class="flex flex-col md:flex-row gap-3">
+          <div class="flex-1 flex items-center bg-black rounded-2xl border border-white/10 px-4">
+            <i class="fas fa-link text-slate-500"></i>
+            <input id="url" name="url" type="text" autocomplete="off" required
+              placeholder="Dán link Facebook / TikTok / Jimeng / Douyin / YouTube..."
+              class="w-full bg-transparent px-3 py-4 text-sm text-white placeholder:text-slate-500 outline-none" />
+            <button type="button" class="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300 text-xs font-semibold hover:bg-violet-500/30 transition"
+              onclick="navigator.clipboard.readText().then(text => document.getElementById('url').value = text)">
+              Dán
+            </button>
+          </div>
+          <button id="submit-btn" type="submit"
+            class="h-12 px-7 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold hover:opacity-90 transition">
+            Tải Ngay
           </button>
         </div>
-        <button class="submit-btn" id="submit-btn" type="submit">Tai Ngay</button>
       </form>
-      <p class="status" id="status" aria-live="polite"></p>
+
+      <p id="status" class="mt-4 text-sm text-yellow-400 min-h-[20px]" aria-live="polite"></p>
+
+      <div class="mt-3" id="progress-wrap">
+        <div class="w-full h-2.5 bg-[#111827] border border-slate-700 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full w-0 bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-300"></div>
+        </div>
+        <p id="progress-label" class="mt-2 text-xs text-slate-400">Đang chờ xử lý...</p>
+      </div>
     </section>
 
-    <div class="features-inline">
-      <span><i class="fa-solid fa-circle"></i> An toan</span>
-      <span><i class="fa-solid fa-circle"></i> Mien phi 100%</span>
-      <span><i class="fa-solid fa-circle"></i> Khong watermark*</span>
-    </div>
-
-    <section class="result hidden" id="result">
-      <article class="result-card">
-        <img id="cover" class="cover" alt="Jimeng thumbnail">
-        <div class="meta">
-          <p class="author" id="item-id"></p>
-          <h2 id="title"></h2>
-          <a class="button primary" id="download-best" href="#" target="_blank" rel="noopener">Tai ban uu tien</a>
-          <div id="quality-list"></div>
+    <section id="result" class="w-full max-w-4xl hidden mb-8">
+      <article class="glass-card rounded-3xl p-5 md:p-6 flex flex-col md:flex-row gap-5">
+        <img id="cover" alt="Video thumbnail" class="w-full md:w-48 h-48 object-cover rounded-2xl bg-black" />
+        <div class="flex-1">
+          <p id="item-id" class="text-xs text-slate-400 mb-2 font-mono"></p>
+          <h2 id="title" class="text-white text-lg md:text-xl font-semibold mb-4"></h2>
+          <a id="download-best" href="#" target="_blank" rel="noopener"
+            class="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold mb-4">
+            Xử lý HD
+          </a>
+          <div id="quality-list" class="pt-4 border-t border-white/10 flex flex-wrap gap-2"></div>
         </div>
       </article>
     </section>
 
-    <div class="feature-cards">
-      <div class="card-item"><i class="fa-solid fa-bolt icon-yellow"></i><h3>Chat luong cao</h3><p>Giu nguyen chat luong nguon neu co.</p></div>
-      <div class="card-item"><i class="fa-solid fa-shield-halved icon-green"></i><h3>An danh</h3><p>Khong can dang nhap tai khoan.</p></div>
-      <div class="card-item"><i class="fa-solid fa-mobile-screen icon-blue"></i><h3>Da nen tang</h3><p>Hoat dong tren mobile va desktop.</p></div>
-    </div>
+    <section class="w-full max-w-6xl pt-6 border-t border-white/10">
+      <h3 class="text-center text-3xl font-extrabold text-white mb-8 tracking-tight uppercase">TIỆN ÍCH MỞ RỘNG</h3>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <a href="https://tts.tienich.pro/" target="_blank" class="ext-card p-5 text-center">
+          <i class="fas fa-volume-high text-4xl text-green-400 mb-3"></i>
+          <p class="text-slate-200 font-semibold text-sm">Text to Speech</p>
+        </a>
+        <a href="https://nano.anhdep.info/" target="_blank" class="ext-card p-5 text-center">
+          <i class="fas fa-pen text-4xl text-pink-400 mb-3"></i>
+          <p class="text-slate-200 font-semibold text-sm">AI Photo Editor</p>
+        </a>
+        <a href="https://cainhau.tienich.pro/2fa" target="_blank" class="ext-card p-5 text-center">
+          <i class="fas fa-shield-halved text-4xl text-yellow-400 mb-3"></i>
+          <p class="text-slate-200 font-semibold text-sm">2FA Live Code</p>
+        </a>
+        <a href="https://son.page.gd/" target="_blank" class="ext-card p-5 text-center">
+          <i class="fas fa-id-card text-4xl text-blue-400 mb-3"></i>
+          <p class="text-slate-200 font-semibold text-sm">Get Facebook ID</p>
+        </a>
+        <a href="https://xemtuong.tienich.pro/" target="_blank" class="ext-card p-5 text-center">
+          <i class="fas fa-eye text-4xl text-orange-400 mb-3"></i>
+          <p class="text-slate-200 font-semibold text-sm">Xem Tướng Online</p>
+        </a>
+        <a href="https://chuinhau.xyz/" target="_blank" class="ext-card p-5 text-center">
+          <i class="fas fa-fire-flame-curved text-4xl text-red-500 mb-3"></i>
+          <p class="text-slate-200 font-semibold text-sm">Cãi Nhau Thuê</p>
+        </a>
+      </div>
+    </section>
   </main>
 
-  <footer>
-    Cong cu khong lien ket voi Jimeng hoac cac nen tang khac.<br>
-    <span class="copyright">&copy; 2026</span>
+  <footer class="w-full border-t border-white/5 py-12 mt-6">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="grid md:grid-cols-3 gap-6 items-center mb-8">
+        <div class="text-center md:text-left">
+          <div class="text-3xl font-extrabold tracking-tight text-white">TIENICH<span class="text-violet-500">.PRO</span></div>
+          <p class="text-slate-500 mt-2">© 2026 All rights reserved.</p>
+        </div>
+        <div class="flex justify-center gap-3">
+          <a class="social-btn" href="#"><i class="fab fa-facebook-f"></i></a>
+          <a class="social-btn" href="#"><i class="fab fa-tiktok"></i></a>
+          <a class="social-btn" href="#"><i class="fab fa-youtube"></i></a>
+        </div>
+        <div class="flex justify-center md:justify-end gap-6 text-slate-400">
+          <button type="button" onclick="showModal('contact')" class="hover:text-white">Liên hệ</button>
+          <button type="button" onclick="showModal('terms')" class="hover:text-white">Điều khoản</button>
+          <button type="button" onclick="showModal('policy')" class="hover:text-white">Chính sách</button>
+        </div>
+      </div>
+      <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row justify-center gap-4">
+        <div class="stat-pill">
+          <span class="w-2.5 h-2.5 rounded-full bg-green-400 led-active"></span>
+          <span>Đang Online:</span>
+          <strong id="online-count" class="text-white">1</strong>
+        </div>
+        <div class="stat-pill">
+          <i class="fas fa-chart-simple text-blue-400 text-xs"></i>
+          <span>Tổng truy cập:</span>
+          <strong id="total-visits" class="text-white">5.182</strong>
+        </div>
+      </div>
+    </div>
   </footer>
+
+  <div id="infoModal" class="fixed inset-0 z-[110] hidden flex items-center justify-center px-4">
+    <div id="modalBackdrop" class="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity duration-300 opacity-0" onclick="closeModal()"></div>
+    <div id="modalContent" class="bg-[#111] border border-white/10 rounded-3xl max-w-md w-full p-6 relative transform scale-95 transition-all duration-300 opacity-0 z-10 shadow-2xl shadow-violet-900/10">
+      <button onclick="closeModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors">
+        <i class="fas fa-times text-sm"></i>
+      </button>
+      <h3 id="modalTitle" class="text-xl font-bold text-white mb-4">Tiêu đề</h3>
+      <div class="h-px w-full bg-gradient-to-r from-violet-500/50 to-transparent mb-4"></div>
+      <div id="modalBody" class="text-slate-300 text-sm leading-7 max-h-[60vh] overflow-y-auto pr-2"></div>
+      <div class="mt-6 pt-4 border-t border-white/5 flex justify-end">
+        <button onclick="closeModal()" class="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-colors">Đóng</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/app.js"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const menuBtn = document.getElementById("mobile-menu-btn");
-      const navMenu = document.getElementById("nav-menu");
-      const icon = menuBtn.querySelector("i");
+    const modal = document.getElementById("infoModal");
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const modalContent = document.getElementById("modalContent");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalBody = document.getElementById("modalBody");
 
-      menuBtn.addEventListener("click", function () {
-        navMenu.classList.toggle("active");
-        if (navMenu.classList.contains("active")) {
-          icon.classList.remove("fa-bars");
-          icon.classList.add("fa-xmark");
-        } else {
-          icon.classList.remove("fa-xmark");
-          icon.classList.add("fa-bars");
-        }
-      });
+    const contentData = {
+      contact: {
+        title: "Liên Hệ Hỗ Trợ",
+        body: `
+          <div class="space-y-4">
+            <p>Chúng tôi luôn sẵn sàng lắng nghe ý kiến đóng góp của bạn.</p>
+            <div class="bg-[#18181b] p-4 rounded-xl border border-white/5">
+              <div class="flex items-center gap-3 mb-2">
+                <i class="fas fa-envelope text-violet-400"></i>
+                <span class="text-white">support@tienich.pro</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <i class="fab fa-telegram text-blue-400"></i>
+                <span class="text-white">@tienich_support</span>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500">Thời gian phản hồi: 8:00 - 17:00 (Thứ 2 - Thứ 6).</p>
+          </div>
+        `
+      },
+      terms: {
+        title: "Điều Khoản",
+        body: `
+          <ul class="space-y-3 list-disc pl-4 marker:text-violet-500">
+            <li>Dịch vụ miễn phí và phục vụ mục đích cá nhân.</li>
+            <li>Chúng tôi không lưu trữ video trên máy chủ.</li>
+            <li>Người dùng chịu trách nhiệm bản quyền nội dung tải xuống.</li>
+            <li>Nghiêm cấm sử dụng công cụ cho mục đích vi phạm pháp luật.</li>
+          </ul>
+        `
+      },
+      policy: {
+        title: "Chính Sách Bảo Mật",
+        body: `
+          <ul class="space-y-3 list-disc pl-4 marker:text-green-500">
+            <li><strong>Không thu thập tài khoản:</strong> Không yêu cầu đăng ký đăng nhập.</li>
+            <li><strong>Ẩn danh:</strong> Link xử lý theo phiên, không lưu lịch sử cá nhân.</li>
+            <li><strong>Cookie kỹ thuật:</strong> Chỉ dùng cookie tối thiểu để duy trì hoạt động web.</li>
+          </ul>
+        `
+      }
+    };
 
-      document.addEventListener("click", function (event) {
-        if (!navMenu.contains(event.target) && !menuBtn.contains(event.target) && navMenu.classList.contains("active")) {
-          navMenu.classList.remove("active");
-          icon.classList.remove("fa-xmark");
-          icon.classList.add("fa-bars");
-        }
+    function showModal(type) {
+      const data = contentData[type];
+      if (!data) return;
+      modalTitle.innerText = data.title;
+      modalBody.innerHTML = data.body;
+      modal.classList.remove("hidden");
+      requestAnimationFrame(() => {
+        modalBackdrop.classList.remove("opacity-0");
+        modalContent.classList.remove("opacity-0", "scale-95");
       });
-    });
+    }
+
+    function closeModal() {
+      modalBackdrop.classList.add("opacity-0");
+      modalContent.classList.add("opacity-0", "scale-95");
+      setTimeout(() => modal.classList.add("hidden"), 300);
+    }
+  </script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, setDoc, increment, serverTimestamp, collection, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_OEs3JrPE7H39-oL94Upwez9jxaY4Td4",
+      authDomain: "cuu-ho.firebaseapp.com",
+      projectId: "cuu-ho",
+      storageBucket: "cuu-ho.firebasestorage.app",
+      messagingSenderId: "406781366615",
+      appId: "1:406781366615:web:105b0b9893b60880cdee12",
+      measurementId: "G-V0WWBF00VJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const elTotal = document.getElementById("total-visits");
+    const elOnline = document.getElementById("online-count");
+
+    async function initAnalytics() {
+      try {
+        const userCredential = await signInAnonymously(auth);
+        const uid = userCredential.user.uid;
+
+        const totalRef = doc(db, "site_stats", "general");
+        setDoc(totalRef, { visits: increment(1) }, { merge: true });
+        onSnapshot(totalRef, (snap) => {
+          if (snap.exists()) {
+            elTotal.innerText = new Intl.NumberFormat("vi-VN").format(snap.data().visits || 0);
+          }
+        });
+
+        const sessionRef = doc(db, "active_sessions", uid);
+        const heartbeat = async () => {
+          await setDoc(sessionRef, { last_seen: serverTimestamp(), device: navigator.userAgent }, { merge: true });
+        };
+        await heartbeat();
+        setInterval(heartbeat, 60000);
+        window.addEventListener("beforeunload", () => deleteDoc(sessionRef));
+
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const q = query(collection(db, "active_sessions"), where("last_seen", ">", fiveMinutesAgo));
+        onSnapshot(q, (snapshot) => {
+          let count = snapshot.size;
+          if (count < 1) count = 1;
+          elOnline.innerText = String(count);
+        }, () => {
+          elOnline.innerText = "1";
+        });
+      } catch {
+        elTotal.innerText = "---";
+        elOnline.innerText = "---";
+      }
+    }
+
+    initAnalytics();
   </script>
 </body>
 </html>

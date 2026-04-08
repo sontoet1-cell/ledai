@@ -4,6 +4,9 @@ yarn-debug.log*
 yarn-error.log*
 .git
 .gitignore
+runtime_tmp
+runtime_tmp2
+ytdlp_sample.json
 public/public.zip
 reflux-*.js
 jimeng-share*.html

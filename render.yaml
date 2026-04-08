@@ -1,7 +1,12 @@
 services:
   - type: web
-    name: jimeng-downloader
+    name: tienich-pro-downloader
     env: docker
     plan: free
     autoDeploy: true
     healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Asia/Bangkok
