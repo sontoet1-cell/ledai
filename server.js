@@ -64,14 +64,7 @@ function scoreSourceUrl(url) {
 
 function isWatermarkUrl(url) {
   const value = String(url || "").toLowerCase();
-  return /display_watermark|watermark_ending|watermark/i.test(value);
-}
-
-function isStrictNoWatermarkCandidate(item) {
-  if (!item || typeof item.url !== "string") return false;
-  if (isWatermarkUrl(item.url)) return false;
-  if (item.watermark_status === "likely_watermark") return false;
-  return true;
+  return /display_watermark|watermark/i.test(value);
 }
 
 function normalizeVideoResult(raw) {
@@ -79,7 +72,6 @@ function normalizeVideoResult(raw) {
   const normalized = dedupeQualities(
     urls
       .filter((item) => typeof item?.url === "string" && /^https?:\/\//i.test(item.url))
-      .filter((item) => isStrictNoWatermarkCandidate(item))
       .sort((a, b) => scoreSourceUrl(b.url) - scoreSourceUrl(a.url))
       .map((item, index) => ({
         label: item.label || (index === 0 ? "Nguon uu tien" : `Quality ${index + 1}`),
@@ -94,7 +86,7 @@ function normalizeVideoResult(raw) {
   );
 
   if (normalized.length === 0) {
-    throw new Error("Khong tim thay nguon KHONG watermark tu Jimeng cho video nay.");
+    throw new Error("Khong tim thay URL video hop le.");
   }
 
   return {
@@ -471,41 +463,10 @@ async function resolveJimengVideo(url) {
   if (inFlight) return inFlight;
 
   const work = (async () => {
-    let primaryError = null;
-
-    const apiResult = await tryResolveViaJimengApi(url).catch(() => null);
-    if (apiResult) {
-      putCachedResolve(url, apiResult);
-      return apiResult;
-    }
-
-    let lastError = null;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const resolved = await resolveViaBrowserAutomation(url);
-        putCachedResolve(url, resolved);
-        return resolved;
-      } catch (error) {
-        lastError = error;
-        const message = String(error?.message || "").toLowerCase();
-        const shouldRetry = message.includes("timeout") || message.includes("fetch") || message.includes("network");
-        if (attempt === 0 && shouldRetry) {
-          await new Promise((resolve) => setTimeout(resolve, 700));
-          continue;
-        }
-        throw error;
-      }
-    }
-
-    primaryError = lastError || new Error("Khong the phan tich link Jimeng.");
-
-    try {
-      const soraResult = await resolveViaSoraFallback(url);
-      putCachedResolve(url, soraResult);
-      return soraResult;
-    } catch (soraError) {
-      throw new Error(`${primaryError.message} Fallback Sora that bai: ${soraError.message || "khong ro loi"}`);
-    }
+    const soraResult = await resolveViaSoraFallback(url);
+    const finalResult = { ...soraResult, resolver: "sora2dl" };
+    putCachedResolve(url, finalResult);
+    return finalResult;
   })();
 
   inFlightResolves.set(url, work);
@@ -624,10 +585,6 @@ const server = http.createServer(async (req, res) => {
       if (!/^https?:$/i.test(sourceParsed.protocol) || isUnsafeHostname(sourceParsed.hostname)) {
         return sendJson(res, 400, { error: "Nguon tai khong hop le." });
       }
-      if (isWatermarkUrl(sourceUrl)) {
-        return sendJson(res, 400, { error: "Nguon nay co watermark, he thong da chan tai." });
-      }
-
       const upstream = await fetch(sourceUrl, {
         method: "GET",
         headers: {

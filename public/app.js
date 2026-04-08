@@ -139,13 +139,14 @@ form.addEventListener("submit", async (event) => {
     const itemId = payload.item_id || "N/A";
     const best = qualities[0];
     const bestStatus = humanWatermarkStatus(best.watermark_status);
+    const resolver = payload.resolver || "unknown";
 
     if (payload.cover_url) {
       cover.src = payload.cover_url;
     }
 
     itemIdEl.textContent = `item_id: ${itemId}`;
-    titleEl.textContent = `Da tim thay video. Nguon uu tien: ${bestStatus}.`;
+    titleEl.textContent = `Da tim thay video. Nguon uu tien: ${bestStatus}. Resolver: ${resolver}.`;
     downloadBest.href = makeDownloadUrl(best.url, `jimeng_${itemId}_best.mp4`);
 
     renderQualities(itemId, qualities);
