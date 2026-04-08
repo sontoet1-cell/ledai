@@ -62,11 +62,24 @@ function scoreSourceUrl(url) {
   return score;
 }
 
+function isWatermarkUrl(url) {
+  const value = String(url || "").toLowerCase();
+  return /display_watermark|watermark_ending|watermark/i.test(value);
+}
+
+function isStrictNoWatermarkCandidate(item) {
+  if (!item || typeof item.url !== "string") return false;
+  if (isWatermarkUrl(item.url)) return false;
+  if (item.watermark_status === "likely_watermark") return false;
+  return true;
+}
+
 function normalizeVideoResult(raw) {
   const urls = Array.isArray(raw?.qualities) ? raw.qualities : [];
   const normalized = dedupeQualities(
     urls
       .filter((item) => typeof item?.url === "string" && /^https?:\/\//i.test(item.url))
+      .filter((item) => isStrictNoWatermarkCandidate(item))
       .sort((a, b) => scoreSourceUrl(b.url) - scoreSourceUrl(a.url))
       .map((item, index) => ({
         label: item.label || (index === 0 ? "Nguon uu tien" : `Quality ${index + 1}`),
@@ -81,7 +94,7 @@ function normalizeVideoResult(raw) {
   );
 
   if (normalized.length === 0) {
-    throw new Error("Khong tim thay URL video hop le.");
+    throw new Error("Khong tim thay nguon KHONG watermark tu Jimeng cho video nay.");
   }
 
   return {
@@ -131,7 +144,7 @@ function extractFromMetadata(metadata) {
   const unique = [...new Set(allUrls)];
   return unique
     .map((url, index) => {
-      const isLikelyNoWatermark = /without_watermark|no_watermark/i.test(url) || !/display_watermark|watermark/i.test(url);
+      const isLikelyNoWatermark = /without_watermark|no_watermark/i.test(url) || !isWatermarkUrl(url);
       return {
         label: index === 0 ? "Nguon Jimeng" : `Nguon ${index + 1}`,
         quality: index === 0 ? "origin" : `alt_${index + 1}`,
@@ -176,6 +189,107 @@ async function tryResolveViaJimengApi(url) {
     cover_url: metadata.cover_url || "",
     qualities
   });
+}
+
+function parseSoraJsonPayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+
+  const candidates = [];
+  const list = Array.isArray(payload?.qualities) ? payload.qualities : [];
+  for (const item of list) {
+    if (!item || typeof item.url !== "string") continue;
+    candidates.push({
+      label: item.label || "Nguon Sora",
+      quality: item.quality || "sora",
+      url: item.url,
+      width: Number(item.width) || 0,
+      height: Number(item.height) || 0,
+      watermark_status: item.watermark_status || "unknown"
+    });
+  }
+
+  const directKeys = ["url", "download_url", "video_url", "nowm", "origin"];
+  for (const key of directKeys) {
+    const value = payload[key];
+    if (typeof value === "string" && /^https?:\/\//i.test(value)) {
+      candidates.push({
+        label: "Nguon Sora",
+        quality: key,
+        url: value,
+        width: 0,
+        height: 0,
+        watermark_status: "unknown"
+      });
+    }
+  }
+
+  if (candidates.length === 0) return null;
+  return {
+    item_id: String(payload.item_id || payload.id || ""),
+    cover_url: String(payload.cover_url || payload.cover || payload.thumbnail || ""),
+    qualities: candidates
+  };
+}
+
+function parseSoraTextPayload(text, sourceUrl) {
+  const urls = new Set();
+  const matches = String(text || "").match(/https?:\/\/[^\s"'<>]+/g) || [];
+  for (const m of matches) {
+    if (/\.mp4(\?|$)/i.test(m) || /mime_type=video_mp4/i.test(m)) {
+      urls.add(m);
+    }
+  }
+
+  if (urls.size === 0) return null;
+  return {
+    item_id: "",
+    cover_url: "",
+    qualities: [...urls].slice(0, 4).map((u, idx) => ({
+      label: idx === 0 ? "Nguon Sora" : `Nguon Sora ${idx + 1}`,
+      quality: `sora_${idx + 1}`,
+      url: u,
+      width: 0,
+      height: 0,
+      watermark_status: "unknown"
+    })),
+    source_url: sourceUrl
+  };
+}
+
+async function resolveViaSoraFallback(url) {
+  const endpoint = `https://sora2dl.com/downloadi.php?url=${encodeURIComponent(url)}`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      Referer: "https://sora2dl.com/jimeng"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Sora fallback loi HTTP ${response.status}.`);
+  }
+
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+  if (contentType.includes("application/json")) {
+    const json = await response.json().catch(() => null);
+    const parsed = parseSoraJsonPayload(json);
+    if (parsed) return normalizeVideoResult(parsed);
+    throw new Error("Sora fallback khong tra JSON hop le.");
+  }
+
+  const text = await response.text();
+  try {
+    const json = JSON.parse(text);
+    const parsedFromJsonText = parseSoraJsonPayload(json);
+    if (parsedFromJsonText) return normalizeVideoResult(parsedFromJsonText);
+  } catch {
+    // Not JSON text, continue parse by regex.
+  }
+
+  const parsedText = parseSoraTextPayload(text, endpoint);
+  if (parsedText) return normalizeVideoResult(parsedText);
+  throw new Error("Sora fallback khong lay duoc URL video.");
 }
 
 function findBrowserExecutable() {
@@ -357,6 +471,8 @@ async function resolveJimengVideo(url) {
   if (inFlight) return inFlight;
 
   const work = (async () => {
+    let primaryError = null;
+
     const apiResult = await tryResolveViaJimengApi(url).catch(() => null);
     if (apiResult) {
       putCachedResolve(url, apiResult);
@@ -381,7 +497,15 @@ async function resolveJimengVideo(url) {
       }
     }
 
-    throw lastError || new Error("Khong the phan tich link Jimeng.");
+    primaryError = lastError || new Error("Khong the phan tich link Jimeng.");
+
+    try {
+      const soraResult = await resolveViaSoraFallback(url);
+      putCachedResolve(url, soraResult);
+      return soraResult;
+    } catch (soraError) {
+      throw new Error(`${primaryError.message} Fallback Sora that bai: ${soraError.message || "khong ro loi"}`);
+    }
   })();
 
   inFlightResolves.set(url, work);
@@ -499,6 +623,9 @@ const server = http.createServer(async (req, res) => {
       const sourceParsed = new URL(sourceUrl);
       if (!/^https?:$/i.test(sourceParsed.protocol) || isUnsafeHostname(sourceParsed.hostname)) {
         return sendJson(res, 400, { error: "Nguon tai khong hop le." });
+      }
+      if (isWatermarkUrl(sourceUrl)) {
+        return sendJson(res, 400, { error: "Nguon nay co watermark, he thong da chan tai." });
       }
 
       const upstream = await fetch(sourceUrl, {
