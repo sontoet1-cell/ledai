@@ -11,6 +11,10 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
 const RESOLVE_CACHE_TTL_MS = 60 * 1000;
 const RUNTIME_TEMP_DIR = path.join(__dirname, "runtime_tmp");
+const YTDLP_PROXY = String(process.env.YTDLP_PROXY || "").trim();
+const YTDLP_COOKIES_FILE = String(process.env.YTDLP_COOKIES_FILE || "").trim();
+const YTDLP_COOKIES_B64 = String(process.env.YTDLP_COOKIES_B64 || "").trim();
+const TIKWM_API_BASE = String(process.env.TIKWM_API_BASE || "https://www.tikwm.com").trim().replace(/\/+$/, "");
 
 const resolveCache = new Map();
 const inFlightResolves = new Map();
@@ -47,6 +51,10 @@ function createHttpError(statusCode, message) {
   const error = new Error(message);
   error.statusCode = Number(statusCode) || 500;
   return error;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function isProcessExecError(error) {
@@ -97,8 +105,45 @@ function sanitizeClientErrorMessage(message) {
   return text;
 }
 
+function platformDisplayName(platform) {
+  const p = String(platform || "").toLowerCase();
+  if (p === "youtube") return "YouTube";
+  if (p === "tiktok") return "TikTok";
+  if (p === "facebook") return "Facebook";
+  if (p === "douyin") return "Douyin";
+  if (p === "jimeng") return "Jimeng";
+  return "Nen tang nay";
+}
+
+let resolvedYtDlpCookiesFile = "";
+function ensureYtDlpCookiesFile() {
+  if (resolvedYtDlpCookiesFile) return resolvedYtDlpCookiesFile;
+  if (YTDLP_COOKIES_FILE) {
+    resolvedYtDlpCookiesFile = YTDLP_COOKIES_FILE;
+    return resolvedYtDlpCookiesFile;
+  }
+  if (!YTDLP_COOKIES_B64) return "";
+  try {
+    const out = path.join(RUNTIME_TEMP_DIR, "yt-cookies.txt");
+    const decoded = Buffer.from(YTDLP_COOKIES_B64, "base64");
+    fs.writeFileSync(out, decoded);
+    resolvedYtDlpCookiesFile = out;
+    return out;
+  } catch {
+    return "";
+  }
+}
+
+function appendYtDlpGlobalArgs(baseArgs) {
+  const out = [...baseArgs];
+  const cookiesFile = ensureYtDlpCookiesFile();
+  if (cookiesFile) out.push("--cookies", cookiesFile);
+  if (YTDLP_PROXY) out.push("--proxy", YTDLP_PROXY);
+  return out;
+}
+
 function buildYtDlpResolveArgs(url, platformHint = "unknown") {
-  const args = [
+  let args = [
     "--dump-single-json",
     "--no-warnings",
     "--no-playlist"
@@ -107,6 +152,7 @@ function buildYtDlpResolveArgs(url, platformHint = "unknown") {
     args.push("--extractor-args", "youtube:player_client=android,web");
   }
   args.push(url);
+  args = appendYtDlpGlobalArgs(args);
   return args;
 }
 
@@ -1294,6 +1340,61 @@ async function resolveViaSora(url, platform = "unknown") {
   return normalizeVideoResult(parsedText, url);
 }
 
+async function resolveViaTikwm(url) {
+  const endpoint = `${TIKWM_API_BASE}/api/?url=${encodeURIComponent(url)}`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      ...DEFAULT_HEADERS,
+      Referer: `${TIKWM_API_BASE}/`
+    }
+  });
+
+  if (!response.ok) {
+    throw createHttpError(502, `Tikwm tra ve HTTP ${response.status}.`);
+  }
+
+  const json = await response.json().catch(() => null);
+  if (!json || Number(json.code) !== 0 || !json.data) {
+    const msg = String(json?.msg || "").trim();
+    if (msg) throw createHttpError(502, `Tikwm loi: ${msg}`);
+    throw createHttpError(502, "Tikwm khong tra du lieu hop le.");
+  }
+
+  const data = json.data || {};
+  const candidates = [];
+  const addCandidate = (label, quality, rawUrl) => {
+    const u = normalizeVideoUrl(rawUrl);
+    if (!u) return;
+    candidates.push({
+      label,
+      quality,
+      url: u,
+      width: 0,
+      height: detectQualityNumber(quality) || detectQualityNumber(u),
+      fps: 0,
+      has_audio: true,
+      audio_url: "",
+      watermark_status: "unknown"
+    });
+  };
+
+  addCandidate("Tikwm HD", "hd", data.hdplay || data.hdplay_url || "");
+  addCandidate("Tikwm NoWM", "nowm", data.play || data.play_url || data.nwm_video_url || "");
+  addCandidate("Tikwm WM", "wm", data.wmplay || data.wmplay_url || "");
+
+  if (!candidates.length) {
+    throw createHttpError(502, "Tikwm khong tim thay URL video.");
+  }
+
+  return normalizeVideoResult({
+    item_id: String(data.id || extractVideoId(url) || ""),
+    title: String(data.title || ""),
+    cover_url: String(data.cover || data.origin_cover || ""),
+    qualities: candidates
+  }, url);
+}
+
 function postProcessByPlatform(result, platform) {
   const qualities = Array.isArray(result?.qualities) ? [...result.qualities] : [];
 
@@ -1368,13 +1469,13 @@ async function downloadViaYtDlpToFile(pageUrl, outputPath) {
   }
 
   await new Promise((resolve, reject) => {
-    const args = [
+    const args = appendYtDlpGlobalArgs([
       "--no-warnings",
       "--no-playlist",
       "-f", "best[ext=mp4]/best",
       "-o", outputPath,
       pageUrl
-    ];
+    ]);
     const proc = spawn(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, ...args], {
       windowsHide: true,
       env: {
@@ -1539,6 +1640,36 @@ async function resolveVideoByPlatform(url) {
     if (!probes.some((u) => isLikelyTikTokVideoUrl(u))) {
       throw createHttpError(400, "Link TikTok khong phai link video. Hay dan link co dang /video/... hoac vm.tiktok.com.");
     }
+
+    for (const probe of probes) {
+      try {
+        let tikwm = null;
+        try {
+          tikwm = await resolveViaTikwm(probe);
+        } catch (error) {
+          const msg = String(error?.message || "").toLowerCase();
+          if (msg.includes("free api limit") || msg.includes("1 request/second")) {
+            await sleep(1200);
+            tikwm = await resolveViaTikwm(probe);
+          } else {
+            throw error;
+          }
+        }
+        if (tikwm?.qualities?.length) {
+          return postProcessByPlatform({
+            ...tikwm,
+            source_page_url: probe,
+            resolver: "tikwm",
+            platform
+          }, platform);
+        }
+      } catch (error) {
+        console.warn(`[tikwm] resolve failed for ${probe}: ${error?.message || error}`);
+        const normalized = normalizeProcessError(error, "Khong the doc du lieu TikTok bang tikwm.");
+        if (!lastError) lastError = normalized;
+      }
+    }
+
     for (const probe of probes) {
       try {
         const ytdlpFirst = await resolveViaYtDlp(probe, "tiktok");
@@ -1582,8 +1713,8 @@ async function resolveVideoByPlatform(url) {
   } catch (error) {
     const normalizedError = normalizeProcessError(error, "Khong the lay du lieu tu sora2dl.");
     if (!lastError) {
-      if (platform === "tiktok" && /sora2dl tra ve http 404/i.test(String(normalizedError?.message || ""))) {
-        lastError = createHttpError(502, "API TikTok tam thoi loi/qua tai, vui long thu lai sau.");
+      if (/sora2dl tra ve http 404/i.test(String(normalizedError?.message || ""))) {
+        lastError = createHttpError(502, `API ${platformDisplayName(platform)} tam thoi loi/qua tai, vui long thu lai sau.`);
       } else {
         lastError = normalizedError;
       }
@@ -2140,5 +2271,8 @@ server.listen(PORT, () => {
   }
   console.log(`[boot] yt-dlp=${ytDlpCommand ? `${ytDlpCommand.executable}${ytDlpCommand.mode === "python_module" ? " (python -m yt_dlp)" : ""}` : "(not found)"}`);
   console.log(`[boot] yt-dlp-version=${getYtDlpVersionText()}`);
+  console.log(`[boot] yt-dlp-proxy=${YTDLP_PROXY ? "on" : "off"}`);
+  console.log(`[boot] yt-dlp-cookies=${ensureYtDlpCookiesFile() ? "on" : "off"}`);
+  console.log(`[boot] tikwm=${TIKWM_API_BASE}`);
   console.log(`Server running at http://localhost:${PORT}`);
 });

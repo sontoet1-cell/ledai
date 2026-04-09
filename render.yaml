@@ -10,3 +10,9 @@ services:
         value: production
       - key: TZ
         value: Asia/Bangkok
+      - key: TIKWM_API_BASE
+        value: https://www.tikwm.com
+      - key: YTDLP_PROXY
+        sync: false
+      - key: YTDLP_COOKIES_B64
+        sync: false
