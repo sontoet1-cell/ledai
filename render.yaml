@@ -16,3 +16,5 @@ services:
         sync: false
       - key: YTDLP_COOKIES_B64
         sync: false
+      - key: SCRAPINGBEE_API_KEY
+        sync: false

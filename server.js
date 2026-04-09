@@ -6,6 +6,12 @@ const { Readable } = require("stream");
 const { pipeline } = require("stream/promises");
 const { spawn, spawnSync } = require("child_process");
 const { URL } = require("url");
+let ProxyAgentCtor = null;
+try {
+  ({ ProxyAgent: ProxyAgentCtor } = require("undici"));
+} catch {
+  ProxyAgentCtor = null;
+}
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -15,6 +21,7 @@ const YTDLP_PROXY = String(process.env.YTDLP_PROXY || "").trim();
 const YTDLP_COOKIES_FILE = String(process.env.YTDLP_COOKIES_FILE || "").trim();
 const YTDLP_COOKIES_B64 = String(process.env.YTDLP_COOKIES_B64 || "").trim();
 const TIKWM_API_BASE = String(process.env.TIKWM_API_BASE || "https://www.tikwm.com").trim().replace(/\/+$/, "");
+const SCRAPINGBEE_API_KEY = String(process.env.SCRAPINGBEE_API_KEY || "").trim();
 
 const resolveCache = new Map();
 const inFlightResolves = new Map();
@@ -414,6 +421,105 @@ function isFacebookHost(host) {
   return h === "facebook.com" || h.endsWith(".facebook.com") || h === "fb.com" || h.endsWith(".fb.com");
 }
 
+const FB_ID_UA_POOL = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edg/125.0.0.0 Safari/537.36"
+];
+
+function pickRandomUserAgent() {
+  return FB_ID_UA_POOL[Math.floor(Math.random() * FB_ID_UA_POOL.length)] || DEFAULT_HEADERS["User-Agent"];
+}
+
+async function getPublicHttpProxyList() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const response = await fetch("https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all", {
+      method: "GET",
+      headers: { "User-Agent": DEFAULT_HEADERS["User-Agent"] },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!response.ok) return [];
+    const text = await response.text();
+    return String(text || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => /^\d{1,3}(?:\.\d{1,3}){3}:\d{2,5}$/.test(line))
+      .slice(0, 60);
+  } catch {
+    return [];
+  }
+}
+
+async function fetchFacebookHtmlOnce(url, proxyAddr = "") {
+  const controller = new AbortController();
+  const timeoutMs = proxyAddr ? 18000 : 12000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const options = {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        ...DEFAULT_HEADERS,
+        "User-Agent": pickRandomUserAgent(),
+        Referer: "https://www.facebook.com/"
+      },
+      signal: controller.signal
+    };
+    if (proxyAddr && ProxyAgentCtor) {
+      options.dispatcher = new ProxyAgentCtor(`http://${proxyAddr}`);
+    }
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw createHttpError(response.status >= 400 && response.status < 600 ? response.status : 502, `Facebook tra ve HTTP ${response.status}.`);
+    }
+    const html = await response.text();
+    return {
+      html,
+      finalUrl: response.url || url,
+      viaProxy: !!proxyAddr,
+      proxy: proxyAddr || ""
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchFacebookHtmlViaScrapingBee(url) {
+  if (!SCRAPINGBEE_API_KEY) return null;
+  const endpoint = new URL("https://app.scrapingbee.com/api/v1/");
+  endpoint.searchParams.set("api_key", SCRAPINGBEE_API_KEY);
+  endpoint.searchParams.set("url", url);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 40000);
+  try {
+    const response = await fetch(endpoint.toString(), {
+      method: "GET",
+      headers: {
+        "User-Agent": DEFAULT_HEADERS["User-Agent"]
+      },
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw createHttpError(502, `ScrapingBee tra ve HTTP ${response.status}.`);
+    }
+    const html = await response.text();
+    return {
+      html,
+      finalUrl: url,
+      viaProxy: false,
+      proxy: "",
+      source: "scrapingbee"
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function extractFacebookIdFromUrl(value) {
   try {
     const parsed = new URL(normalizeInputUrl(value));
@@ -453,26 +559,53 @@ async function resolveFacebookProfileId(rawUrl) {
   const usernameMatch = pathname.match(/^\/([A-Za-z0-9.]{3,})(?:\/|$)/);
   const username = usernameMatch ? usernameMatch[1] : "";
 
-  const response = await fetch(normalized, {
-    method: "GET",
-    redirect: "follow",
-    headers: {
-      ...DEFAULT_HEADERS,
-      Referer: "https://www.facebook.com/"
+  const scrapingBeeResult = await fetchFacebookHtmlViaScrapingBee(normalized).catch(() => null);
+  const proxyList = scrapingBeeResult ? [] : await getPublicHttpProxyList();
+  const candidates = [];
+  if (scrapingBeeResult) {
+    candidates.push("__SCRAPINGBEE__");
+  }
+  if (proxyList.length > 0) {
+    const randomStart = Math.floor(Math.random() * proxyList.length);
+    for (let i = 0; i < Math.min(6, proxyList.length); i += 1) {
+      const idx = (randomStart + i) % proxyList.length;
+      candidates.push(proxyList[idx]);
     }
-  });
+  }
+  candidates.push(""); // fallback direct
 
-  if (!response.ok) {
-    throw createHttpError(502, `Facebook tra ve HTTP ${response.status}.`);
+  let html = "";
+  let finalUrl = normalized;
+  let lastError = null;
+  for (const proxy of candidates) {
+    try {
+      const fetched = proxy === "__SCRAPINGBEE__"
+        ? scrapingBeeResult
+        : await fetchFacebookHtmlOnce(normalized, proxy);
+      html = fetched.html;
+      finalUrl = fetched.finalUrl;
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!html) {
+    throw createHttpError(502, lastError?.message || "Khong the lay du lieu tu Facebook (co the bi chan IP).");
   }
 
-  const html = await response.text();
   const patterns = [
     /"entity_id":"(\d{5,})"/i,
     /"userID":"(\d{5,})"/i,
     /"user_id":"(\d{5,})"/i,
     /"profile_id":"(\d{5,})"/i,
     /"actorID":"(\d{5,})"/i,
+    /"delegate_page_id":"(\d{5,})"/i,
+    /"pageID":"(\d{5,})"/i,
+    /"groupID":"(\d{5,})"/i,
+    /"profile_owner":"(\d{5,})"/i,
+    /"page_id":(\d{5,})/i,
+    /"profile_id":(\d{5,})/i,
+    /;sub_id=(\d{5,});/i,
     /profile_id=(\d{5,})/i,
     /fb:\/\/profile\/(\d{5,})/i,
     /owner_id["']?\s*:\s*["']?(\d{5,})/i
@@ -484,7 +617,7 @@ async function resolveFacebookProfileId(rawUrl) {
       return {
         id: match[1],
         username: username || "",
-        profile_url: response.url || normalized,
+        profile_url: finalUrl || normalized,
         source: "html"
       };
     }
