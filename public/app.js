@@ -543,3 +543,84 @@ if (totpSecretInput && totpCodeEl && totpTimerEl && totpCopyBtn && totpStatusEl)
   });
   startTicking();
 }
+
+const electricityForm = document.getElementById("electricity-form");
+const electricityKwhInput = document.getElementById("electricity-kwh");
+const electricityBeforeVatEl = document.getElementById("electricity-before-vat");
+const electricityVatEl = document.getElementById("electricity-vat");
+const electricityTotalEl = document.getElementById("electricity-total");
+const electricityBreakdownEl = document.getElementById("electricity-breakdown");
+
+const ELECTRICITY_TIERS = [
+  { cap: 50, price: 1962, label: "Bac 1" },
+  { cap: 50, price: 2028, label: "Bac 2" },
+  { cap: 100, price: 2354, label: "Bac 3" },
+  { cap: 100, price: 2965, label: "Bac 4" },
+  { cap: 100, price: 3314, label: "Bac 5" },
+  { cap: Infinity, price: 3423, label: "Bac 6" }
+];
+const VAT_RATE = 0.08;
+
+function formatVnd(amount) {
+  return `${Number(amount || 0).toLocaleString("vi-VN")} đ`;
+}
+
+function calculateElectricityBill(kwhInput) {
+  const kwh = Math.max(0, Math.floor(Number(kwhInput) || 0));
+  let remaining = kwh;
+  let subtotal = 0;
+  const detail = [];
+
+  for (const tier of ELECTRICITY_TIERS) {
+    if (remaining <= 0) break;
+    const used = Math.min(remaining, tier.cap);
+    const cost = used * tier.price;
+    detail.push({
+      label: tier.label,
+      used,
+      price: tier.price,
+      cost
+    });
+    subtotal += cost;
+    remaining -= used;
+  }
+
+  const vat = Math.round(subtotal * VAT_RATE);
+  const total = subtotal + vat;
+  return { kwh, subtotal, vat, total, detail };
+}
+
+function renderElectricityBill(result) {
+  if (!electricityBeforeVatEl || !electricityVatEl || !electricityTotalEl || !electricityBreakdownEl) return;
+  electricityBeforeVatEl.textContent = formatVnd(result.subtotal);
+  electricityVatEl.textContent = `${formatVnd(result.vat)} (8%)`;
+  electricityTotalEl.textContent = formatVnd(result.total);
+
+  electricityBreakdownEl.innerHTML = "";
+  for (const row of result.detail) {
+    const line = document.createElement("div");
+    line.className = "flex items-center justify-between border-b border-white/5 pb-2";
+    line.innerHTML = `
+      <span class="text-slate-300">${row.label} (${row.used} kWh x ${row.price.toLocaleString("vi-VN")} đ):</span>
+      <strong class="text-slate-100">${formatVnd(row.cost)}</strong>
+    `;
+    electricityBreakdownEl.appendChild(line);
+  }
+}
+
+if (electricityForm && electricityKwhInput) {
+  electricityForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const raw = Number(electricityKwhInput.value);
+    if (!Number.isFinite(raw) || raw <= 0) {
+      electricityKwhInput.focus();
+      alert("Vui long nhap so kWh hop le (>0).");
+      return;
+    }
+    const bill = calculateElectricityBill(raw);
+    renderElectricityBill(bill);
+  });
+
+  const initBill = calculateElectricityBill(Number(electricityKwhInput.value || 0));
+  renderElectricityBill(initBill);
+}
