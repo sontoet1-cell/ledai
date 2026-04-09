@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 RUN chmod +x /usr/bin/yt-dlp || true
-RUN python3 -m pip install --break-system-packages --no-cache-dir -U yt-dlp
+RUN python3 -m pip install --no-cache-dir --break-system-packages -U "yt-dlp @ https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.tar.gz"
 
 WORKDIR /app
 
