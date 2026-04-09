@@ -223,6 +223,84 @@
       </div>
 
       <div class="grid md:grid-cols-2 gap-4 mt-6">
+        <div class="ext-card p-4 md:col-span-2 max-w-3xl mx-auto w-full">
+          <div class="flex items-center gap-3 mb-4">
+            <i class="fas fa-bolt text-red-400 text-xl"></i>
+            <h4 class="text-white font-bold text-lg">Công Cụ Tính Tiền Điện Online</h4>
+          </div>
+          <form id="electricity-form" class="space-y-4">
+            <div class="flex flex-col md:flex-row gap-3">
+              <input
+                id="electricity-kwh"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Nhập tổng điện năng tiêu thụ (kWh)"
+                class="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
+              />
+              <button
+                type="submit"
+                class="h-11 px-6 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold hover:opacity-90 transition"
+              >
+                Tính Ngay
+              </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">VAT (%)</label>
+                <input
+                  id="electricity-vat-rate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value="8"
+                  class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Phụ phí khác (đ, tuỳ chọn)</label>
+                <input
+                  id="electricity-extra-fee"
+                  type="number"
+                  min="0"
+                  step="100"
+                  value="0"
+                  class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none"
+                />
+              </div>
+            </div>
+          </form>
+
+          <div id="electricity-result" class="mt-4 bg-black/30 border border-emerald-400/40 rounded-2xl p-4">
+            <div class="flex items-center justify-between py-1">
+              <span class="text-slate-300">Tiền điện (chưa VAT):</span>
+              <strong id="electricity-before-vat" class="text-emerald-300 text-lg">0 đ</strong>
+            </div>
+            <div class="flex items-center justify-between py-1">
+              <span class="text-slate-300">Thuế GTGT:</span>
+              <strong id="electricity-vat" class="text-slate-200">0 đ</strong>
+            </div>
+            <div class="flex items-center justify-between py-1">
+              <span class="text-slate-300">Phụ phí khác:</span>
+              <strong id="electricity-extra" class="text-slate-200">0 đ</strong>
+            </div>
+            <div class="h-px w-full bg-emerald-400/30 my-2"></div>
+            <div class="flex items-center justify-between py-1">
+              <span class="text-emerald-200 text-lg font-bold uppercase">Tổng Cộng Phải Trả:</span>
+              <strong id="electricity-total" class="text-emerald-400 text-2xl md:text-3xl font-extrabold">0 đ</strong>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <p class="text-white font-semibold mb-2">Chi tiết tính toán:</p>
+            <div id="electricity-breakdown" class="space-y-2 text-sm"></div>
+            <p class="text-xs text-slate-500 mt-3">
+              Lưu ý: Hoá đơn thực tế có thể chênh do làm tròn, tiền dịch vụ hoặc phụ phí địa phương.
+            </p>
+          </div>
+        </div>
+
         <div class="ext-card p-5">
           <div class="flex items-center gap-3 mb-4">
             <i class="fas fa-id-card text-blue-400 text-xl"></i>
@@ -283,53 +361,6 @@
               Copy Mã 2FA
             </button>
             <p id="totp-status" class="text-sm text-slate-300 min-h-[20px]"></p>
-          </div>
-        </div>
-
-        <div class="ext-card p-5 md:col-span-2">
-          <div class="flex items-center gap-3 mb-4">
-            <i class="fas fa-bolt text-red-400 text-xl"></i>
-            <h4 class="text-white font-bold text-lg">Cong Cu Tinh Tien Dien Online</h4>
-          </div>
-          <form id="electricity-form" class="space-y-4">
-            <div class="flex flex-col md:flex-row gap-3">
-              <input
-                id="electricity-kwh"
-                type="number"
-                min="1"
-                step="1"
-                value="620"
-                placeholder="Nhap tong dien nang tieu thu (kWh)"
-                class="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
-              />
-              <button
-                type="submit"
-                class="h-11 px-6 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold hover:opacity-90 transition"
-              >
-                Tinh Ngay
-              </button>
-            </div>
-          </form>
-
-          <div id="electricity-result" class="mt-4 bg-black/30 border border-red-400/40 rounded-2xl p-4">
-            <div class="flex items-center justify-between py-1">
-              <span class="text-slate-300">Tien dien (chua VAT):</span>
-              <strong id="electricity-before-vat" class="text-white text-lg">0 đ</strong>
-            </div>
-            <div class="flex items-center justify-between py-1">
-              <span class="text-slate-300">Thue GTGT (VAT 8%):</span>
-              <strong id="electricity-vat" class="text-slate-200">0 đ</strong>
-            </div>
-            <div class="h-px w-full bg-red-400/30 my-2"></div>
-            <div class="flex items-center justify-between py-1">
-              <span class="text-red-300 text-xl font-bold uppercase">Tong Cong Phai Tra:</span>
-              <strong id="electricity-total" class="text-red-400 text-3xl font-extrabold">0 đ</strong>
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <p class="text-white font-semibold mb-2">Chi tiet tinh toan:</p>
-            <div id="electricity-breakdown" class="space-y-2 text-sm"></div>
           </div>
         </div>
       </div>
