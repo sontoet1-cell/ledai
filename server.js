@@ -69,8 +69,14 @@ function summarizeYtDlpError(stderrText, actionLabel = "xu ly") {
   if (low.includes("the json object must be str") || low.includes("nonetype")) {
     return "Nguon downloader tra du lieu khong hop le. Thu lai sau it phut hoac doi link khac.";
   }
-  if (low.includes("private") || low.includes("login required") || low.includes("sign in")) {
-    return "Video yeu cau dang nhap/khong cong khai, khong the tai truc tiep.";
+  if (low.includes("sign in to confirm you're not a bot") || low.includes("confirm you\u2019re not a bot")) {
+    return "YouTube dang bat xac minh bot. Thu lai sau it phut hoac doi IP/Proxy sach.";
+  }
+  if (low.includes("this video is private") || low.includes("private video")) {
+    return "Video khong cong khai (private), khong the tai truc tiep.";
+  }
+  if (low.includes("login required") || low.includes("sign in")) {
+    return "Video yeu cau dang nhap de truy cap, khong the tai truc tiep.";
   }
   if (low.includes("unsupported url")) {
     return "Link khong duoc downloader ho tro.";
@@ -89,6 +95,19 @@ function sanitizeClientErrorMessage(message) {
     return "Nguon downloader tra du lieu khong hop le. Thu lai sau it phut hoac doi link khac.";
   }
   return text;
+}
+
+function buildYtDlpResolveArgs(url, platformHint = "unknown") {
+  const args = [
+    "--dump-single-json",
+    "--no-warnings",
+    "--no-playlist"
+  ];
+  if (platformHint === "youtube") {
+    args.push("--extractor-args", "youtube:player_client=android,web");
+  }
+  args.push(url);
+  return args;
 }
 
 function findExecutableInPath(binaryName) {
@@ -242,6 +261,21 @@ function findYtDlpCommand() {
   return null;
 }
 
+function getYtDlpVersionText() {
+  if (!ytDlpCommand) return "(not found)";
+  try {
+    const probe = spawnSync(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, "--version"], {
+      stdio: ["ignore", "pipe", "ignore"],
+      windowsHide: true
+    });
+    if (probe.status !== 0) return "(version check failed)";
+    const text = String(probe.stdout || "").trim();
+    return text || "(empty)";
+  } catch {
+    return "(version check failed)";
+  }
+}
+
 function createJobId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -317,6 +351,67 @@ function detectPlatform(value) {
 
 function isSupportedUrl(value) {
   return detectPlatform(value) !== "unknown";
+}
+
+function isLikelyTikTokVideoUrl(value) {
+  try {
+    const parsed = new URL(normalizeInputUrl(value));
+    const host = parsed.hostname.toLowerCase();
+    const pathname = parsed.pathname || "";
+    if (host === "vm.tiktok.com" || host === "vt.tiktok.com") return true;
+    if (!host.endsWith("tiktok.com")) return false;
+    if (/\/video\/\d+/i.test(pathname)) return true;
+    if (/\/t\/[A-Za-z0-9]+/i.test(pathname)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function canonicalizeTikTokVideoUrl(value) {
+  try {
+    const parsed = new URL(normalizeInputUrl(value));
+    const host = parsed.hostname.toLowerCase();
+    if (host === "vm.tiktok.com" || host === "vt.tiktok.com") {
+      return parsed.toString();
+    }
+    if (!host.endsWith("tiktok.com")) return parsed.toString();
+
+    const match = parsed.pathname.match(/^\/@([^/]+)\/video\/(\d+)/i);
+    if (match) {
+      const username = match[1];
+      const videoId = match[2];
+      return `https://www.tiktok.com/@${username}/video/${videoId}`;
+    }
+    return `https://www.tiktok.com${parsed.pathname}`;
+  } catch {
+    return normalizeInputUrl(value);
+  }
+}
+
+async function buildTikTokProbeUrls(value) {
+  const probes = [];
+  const pushUnique = (u) => {
+    const n = normalizeInputUrl(u);
+    if (!n) return;
+    if (!probes.includes(n)) probes.push(n);
+  };
+
+  const original = normalizeInputUrl(value);
+  pushUnique(original);
+
+  const canonical = canonicalizeTikTokVideoUrl(original);
+  pushUnique(canonical);
+
+  try {
+    const redirect = await resolveRedirectInfo(original);
+    pushUnique(redirect.location || original);
+    pushUnique(canonicalizeTikTokVideoUrl(redirect.location || original));
+  } catch {
+    // Ignore redirect expansion errors.
+  }
+
+  return probes;
 }
 
 function decodeEscapedValue(value) {
@@ -1305,15 +1400,10 @@ async function downloadViaYtDlpToFile(pageUrl, outputPath) {
   });
 }
 
-async function resolveViaYtDlp(url) {
+async function resolveViaYtDlp(url, platformHint = "unknown") {
   if (!ytDlpCommand) return null;
 
-  const args = [
-    "--dump-single-json",
-    "--no-warnings",
-    "--no-playlist",
-    url
-  ];
+  const args = buildYtDlpResolveArgs(url, platformHint);
 
   const { stdout } = await runCommandCapture(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, ...args]);
   let info = {};
@@ -1379,13 +1469,13 @@ async function resolveFacebookVideo(url) {
       throw createHttpError(400, "Link Facebook khong hop le, da xoa, hoac khong cong khai.");
     }
     try {
-      const ytdlpPrimary = await resolveViaYtDlp(redirect.location || url);
+      const ytdlpPrimary = await resolveViaYtDlp(redirect.location || url, "facebook");
       if (ytdlpPrimary?.qualities?.length) {
         const finalResult = { ...ytdlpPrimary, resolver: "yt_dlp_fallback" };
         putCachedResolve(url, finalResult);
         return finalResult;
       }
-      const ytdlpOriginal = await resolveViaYtDlp(url);
+      const ytdlpOriginal = await resolveViaYtDlp(url, "facebook");
       if (ytdlpOriginal?.qualities?.length) {
         const finalResult = { ...ytdlpOriginal, resolver: "yt_dlp_fallback" };
         putCachedResolve(url, finalResult);
@@ -1426,7 +1516,7 @@ async function resolveVideoByPlatform(url) {
 
   if (platform === "youtube") {
     try {
-      const ytdlpFirst = await resolveViaYtDlp(normalized);
+      const ytdlpFirst = await resolveViaYtDlp(normalized, "youtube");
       if (ytdlpFirst?.qualities?.length) {
         return postProcessByPlatform({
           ...ytdlpFirst,
@@ -1437,6 +1527,32 @@ async function resolveVideoByPlatform(url) {
       }
     } catch (error) {
       lastError = normalizeProcessError(error, "Khong the doc du lieu YouTube bang yt-dlp.");
+    }
+    if (lastError) {
+      throw createHttpError(Number(lastError.statusCode) || 502, lastError.message || "Khong the tai video YouTube luc nay.");
+    }
+    throw createHttpError(502, "Khong tim thay stream YouTube hop le.");
+  }
+
+  if (platform === "tiktok") {
+    const probes = await buildTikTokProbeUrls(normalized);
+    if (!probes.some((u) => isLikelyTikTokVideoUrl(u))) {
+      throw createHttpError(400, "Link TikTok khong phai link video. Hay dan link co dang /video/... hoac vm.tiktok.com.");
+    }
+    for (const probe of probes) {
+      try {
+        const ytdlpFirst = await resolveViaYtDlp(probe, "tiktok");
+        if (ytdlpFirst?.qualities?.length) {
+          return postProcessByPlatform({
+            ...ytdlpFirst,
+            source_page_url: probe,
+            resolver: "yt_dlp",
+            platform
+          }, platform);
+        }
+      } catch (error) {
+        lastError = normalizeProcessError(error, "Khong the doc du lieu TikTok bang yt-dlp.");
+      }
     }
   }
 
@@ -1464,11 +1580,18 @@ async function resolveVideoByPlatform(url) {
       }, platform);
     }
   } catch (error) {
-    if (!lastError) lastError = normalizeProcessError(error, "Khong the lay du lieu tu sora2dl.");
+    const normalizedError = normalizeProcessError(error, "Khong the lay du lieu tu sora2dl.");
+    if (!lastError) {
+      if (platform === "tiktok" && /sora2dl tra ve http 404/i.test(String(normalizedError?.message || ""))) {
+        lastError = createHttpError(502, "API TikTok tam thoi loi/qua tai, vui long thu lai sau.");
+      } else {
+        lastError = normalizedError;
+      }
+    }
   }
 
   try {
-    const ytdlp = await resolveViaYtDlp(normalized);
+    const ytdlp = await resolveViaYtDlp(normalized, platform);
     if (ytdlp?.qualities?.length) {
       return postProcessByPlatform({
         ...ytdlp,
@@ -2015,6 +2138,7 @@ server.listen(PORT, () => {
   } else {
     console.log("[boot] ffmpeg not found (720p co tieng van tai duoc)");
   }
-console.log(`[boot] yt-dlp=${ytDlpCommand ? `${ytDlpCommand.executable}${ytDlpCommand.mode === "python_module" ? " (python -m yt_dlp)" : ""}` : "(not found)"}`);
+  console.log(`[boot] yt-dlp=${ytDlpCommand ? `${ytDlpCommand.executable}${ytDlpCommand.mode === "python_module" ? " (python -m yt_dlp)" : ""}` : "(not found)"}`);
+  console.log(`[boot] yt-dlp-version=${getYtDlpVersionText()}`);
   console.log(`Server running at http://localhost:${PORT}`);
 });
