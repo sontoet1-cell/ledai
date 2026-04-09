@@ -25,15 +25,18 @@ const SCRAPINGBEE_API_KEY = String(process.env.SCRAPINGBEE_API_KEY || "").trim()
 const PROXYXOAY_KEY = String(process.env.PROXYXOAY_KEY || "").trim();
 const PROXYXOAY_API_BASE = String(process.env.PROXYXOAY_API_BASE || "https://proxyxoay.shop").trim().replace(/\/+$/, "");
 const PROXYXOAY_CACHE_MS = Math.max(10000, Number(process.env.PROXYXOAY_CACHE_MS || 45000));
+const RECLIP_DOWNLOAD_DIR = path.join(RUNTIME_TEMP_DIR, "reclip_downloads");
 
 const resolveCache = new Map();
 const inFlightResolves = new Map();
 const ffmpegExecutable = findFfmpegExecutable();
 const ytDlpCommand = findYtDlpCommand();
 const processJobs = new Map();
+const reclipJobs = new Map();
 
 try {
   fs.mkdirSync(RUNTIME_TEMP_DIR, { recursive: true });
+  fs.mkdirSync(RECLIP_DOWNLOAD_DIR, { recursive: true });
 } catch {
   // Ignore temp-dir initialization errors.
 }
@@ -240,8 +243,6 @@ async function buildYtDlpResolveArgs(url, platformHint = "unknown", youtubeProfi
     "--geo-bypass-country", "US"
   ];
   if (platformHint === "youtube") {
-    args.push("--ignore-no-formats-error");
-    args.push("--format", "bestvideo*+bestaudio/best");
     if (youtubeProfile === "default") {
       args.push("--extractor-args", "youtube:player_client=android,web");
     } else if (youtubeProfile === "mobile") {
@@ -1488,6 +1489,167 @@ function runCommandCapture(executable, args) {
   });
 }
 
+function pickJsonFromStdout(stdoutText) {
+  const lines = String(stdoutText || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    try {
+      return JSON.parse(lines[i]);
+    } catch {
+      // Keep scanning previous lines.
+    }
+  }
+  return null;
+}
+
+function buildReclipFormatList(info) {
+  const formats = Array.isArray(info?.formats) ? info.formats : [];
+  const bestByHeight = new Map();
+  for (const fmt of formats) {
+    const height = Number(fmt?.height) || 0;
+    const formatId = String(fmt?.format_id || "");
+    if (!height || !formatId) continue;
+    if (!fmt?.vcodec || fmt.vcodec === "none") continue;
+    const currentScore = Number(fmt?.tbr) || 0;
+    const prev = bestByHeight.get(height);
+    const prevScore = Number(prev?.tbr) || 0;
+    if (!prev || currentScore >= prevScore) {
+      bestByHeight.set(height, fmt);
+    }
+  }
+  return [...bestByHeight.entries()]
+    .map(([height, fmt]) => ({
+      id: String(fmt.format_id),
+      label: `${height}p`,
+      height: Number(height) || 0
+    }))
+    .sort((a, b) => b.height - a.height);
+}
+
+function sanitizeReclipDownloadName(title, ext) {
+  const cleaned = String(title || "")
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+    .trim()
+    .slice(0, 80);
+  const safeBase = cleaned || `tienich.pro_${Date.now()}`;
+  const safeExt = String(ext || ".mp4").startsWith(".") ? String(ext) : `.${ext}`;
+  return `${safeBase}${safeExt}`;
+}
+
+async function runReclipInfo(url) {
+  if (!ytDlpCommand) {
+    throw createHttpError(502, "Chua tim thay yt-dlp tren may chu.");
+  }
+  const baseArgs = ["--no-playlist", "--no-warnings", "-j", url];
+  const args = await appendYtDlpGlobalArgsAsync(baseArgs);
+  const { stdout } = await runCommandCapture(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, ...args]);
+  const info = pickJsonFromStdout(stdout);
+  if (!info || typeof info !== "object") {
+    throw createHttpError(502, "yt-dlp tra ve JSON khong hop le.");
+  }
+  return {
+    title: String(info.title || ""),
+    thumbnail: String(info.thumbnail || ""),
+    duration: Number(info.duration) || 0,
+    uploader: String(info.uploader || ""),
+    formats: buildReclipFormatList(info)
+  };
+}
+
+async function runReclipDownloadJob(job) {
+  if (!ytDlpCommand) {
+    job.status = "error";
+    job.error = "Chua tim thay yt-dlp tren may chu.";
+    return;
+  }
+
+  const outTemplate = path.join(RECLIP_DOWNLOAD_DIR, `${job.id}.%(ext)s`);
+  let isolatedTempDir = "";
+  try {
+    isolatedTempDir = fs.mkdtempSync(path.join(RUNTIME_TEMP_DIR, "reclip-yt-"));
+  } catch {
+    isolatedTempDir = RUNTIME_TEMP_DIR;
+  }
+
+  try {
+    const baseArgs = ["--no-playlist", "--no-warnings", "-o", outTemplate];
+    if (job.format === "audio") {
+      baseArgs.push("-x", "--audio-format", "mp3");
+    } else if (job.formatId) {
+      baseArgs.push("-f", `${job.formatId}+bestaudio/best`, "--merge-output-format", "mp4");
+    } else {
+      baseArgs.push("-f", "bestvideo+bestaudio/best", "--merge-output-format", "mp4");
+    }
+    baseArgs.push(job.url);
+    const args = await appendYtDlpGlobalArgsAsync(baseArgs);
+
+    await new Promise((resolve, reject) => {
+      const proc = spawn(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, ...args], {
+        windowsHide: true,
+        env: {
+          ...process.env,
+          TMP: isolatedTempDir,
+          TEMP: isolatedTempDir
+        }
+      });
+      let stderr = "";
+      const timeout = setTimeout(() => {
+        try {
+          proc.kill("SIGKILL");
+        } catch {
+          // Ignore kill errors.
+        }
+        reject(createHttpError(408, "Download timed out (10 min)."));
+      }, 10 * 60 * 1000);
+
+      proc.stderr.on("data", (chunk) => {
+        stderr += String(chunk || "");
+      });
+      proc.on("error", (error) => {
+        clearTimeout(timeout);
+        reject(normalizeProcessError(error, "Khong the chay yt-dlp."));
+      });
+      proc.on("close", (code) => {
+        clearTimeout(timeout);
+        if (code === 0) {
+          resolve();
+          return;
+        }
+        reject(createHttpError(502, summarizeYtDlpError(stderr, "tai file")));
+      });
+    });
+
+    const files = (await fs.promises.readdir(RECLIP_DOWNLOAD_DIR))
+      .filter((name) => name.startsWith(`${job.id}.`))
+      .map((name) => path.join(RECLIP_DOWNLOAD_DIR, name));
+    if (!files.length) {
+      throw createHttpError(500, "Download xong nhung khong tim thay file.");
+    }
+
+    const wantedExt = job.format === "audio" ? ".mp3" : ".mp4";
+    const preferred = files.find((f) => f.toLowerCase().endsWith(wantedExt)) || files[0];
+    for (const file of files) {
+      if (file === preferred) continue;
+      await fs.promises.rm(file, { force: true }).catch(() => {});
+    }
+
+    const ext = path.extname(preferred) || (job.format === "audio" ? ".mp3" : ".mp4");
+    job.status = "done";
+    job.file = preferred;
+    job.filename = sanitizeReclipDownloadName(job.title || "", ext);
+    job.error = "";
+    job.updated_at = Date.now();
+  } catch (error) {
+    job.status = "error";
+    job.error = sanitizeClientErrorMessage(error?.message || "Khong the tai file.");
+    job.updated_at = Date.now();
+  } finally {
+    await fs.promises.rm(isolatedTempDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 function buildQualitiesFromYtDlpInfo(info) {
   const formats = Array.isArray(info?.formats) ? info.formats : [];
   const audios = formats
@@ -1495,7 +1657,7 @@ function buildQualitiesFromYtDlpInfo(info) {
     .sort((a, b) => (Number(b.abr) || 0) - (Number(a.abr) || 0));
   const bestAudio = audios[0] || null;
 
-  const videos = [];
+  const bestByHeight = new Map();
   for (const f of formats) {
     if (!f || typeof f.url !== "string") continue;
     const height = Number(f.height) || 0;
@@ -1504,7 +1666,7 @@ function buildQualitiesFromYtDlpInfo(info) {
     if (height < 720) continue;
 
     const hasAudio = !!(f.acodec && f.acodec !== "none");
-    videos.push({
+    const candidate = {
       label: `yt-dlp ${height}p`,
       quality: `${height}p`,
       url: f.url,
@@ -1514,10 +1676,22 @@ function buildQualitiesFromYtDlpInfo(info) {
       watermark_status: "unknown",
       has_audio: hasAudio,
       audio_url: hasAudio ? "" : (bestAudio?.url || "")
-    });
+    };
+    const prev = bestByHeight.get(height);
+    if (!prev) {
+      bestByHeight.set(height, candidate);
+      continue;
+    }
+    const prevScore = (Number(prev.fps) || 0) * 1000 + (Number(prev.width) || 0);
+    const nextScore = (Number(candidate.fps) || 0) * 1000 + (Number(candidate.width) || 0);
+    if (nextScore >= prevScore) {
+      bestByHeight.set(height, candidate);
+    }
   }
 
-  return videos;
+  return [...bestByHeight.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map((entry) => entry[1]);
 }
 
 function parseSoraJsonPayload(payload) {
@@ -2504,6 +2678,105 @@ function readRequestBody(req) {
 const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && req.url === "/healthz") {
     sendJson(res, 200, { ok: true, uptime: process.uptime() });
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/info") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      const url = normalizeInputUrl(typeof body.url === "string" ? body.url : "");
+      if (!url) return sendJson(res, 400, { error: "No URL provided" });
+      const info = await runReclipInfo(url);
+      sendJson(res, 200, info);
+    } catch (error) {
+      const statusCode = Number(error?.statusCode) || 500;
+      sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
+        error: sanitizeClientErrorMessage(error?.message || "Khong the lay thong tin video.")
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/download") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      const url = normalizeInputUrl(typeof body.url === "string" ? body.url : "");
+      const format = String(body.format || "video").toLowerCase() === "audio" ? "audio" : "video";
+      const formatId = typeof body.format_id === "string" ? body.format_id.trim() : "";
+      const title = typeof body.title === "string" ? body.title : "";
+      if (!url) return sendJson(res, 400, { error: "No URL provided" });
+
+      const jobId = createJobId();
+      const job = {
+        id: jobId,
+        url,
+        format,
+        formatId,
+        title,
+        status: "downloading",
+        file: "",
+        filename: "",
+        error: "",
+        created_at: Date.now(),
+        updated_at: Date.now()
+      };
+      reclipJobs.set(jobId, job);
+      runReclipDownloadJob(job).catch(() => {});
+      sendJson(res, 200, { job_id: jobId });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode) || 500;
+      sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
+        error: sanitizeClientErrorMessage(error?.message || "Khong the tao job tai xuong.")
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/status/")) {
+    const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+    const parsed = new URL(req.url, base);
+    const id = decodeURIComponent(parsed.pathname.slice("/api/status/".length));
+    const job = reclipJobs.get(id);
+    if (!job) return sendJson(res, 404, { error: "Job not found" });
+    return sendJson(res, 200, {
+      status: job.status,
+      error: job.error || "",
+      filename: job.filename || ""
+    });
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/file/")) {
+    const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+    const parsed = new URL(req.url, base);
+    const id = decodeURIComponent(parsed.pathname.slice("/api/file/".length));
+    const job = reclipJobs.get(id);
+    if (!job || job.status !== "done" || !job.file) {
+      return sendJson(res, 404, { error: "File not ready" });
+    }
+    try {
+      await fs.promises.access(job.file, fs.constants.R_OK);
+    } catch {
+      return sendJson(res, 404, { error: "File not found" });
+    }
+
+    const ext = path.extname(job.file).toLowerCase();
+    res.writeHead(200, {
+      "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${job.filename || path.basename(job.file)}"`,
+      "Cache-Control": "no-store"
+    });
+    const stream = fs.createReadStream(job.file);
+    stream.on("error", () => {
+      if (!res.headersSent) sendJson(res, 500, { error: "Khong doc duoc file." });
+      else res.destroy();
+    });
+    stream.on("close", async () => {
+      await fs.promises.rm(job.file, { force: true }).catch(() => {});
+      reclipJobs.delete(id);
+    });
+    stream.pipe(res);
     return;
   }
 
