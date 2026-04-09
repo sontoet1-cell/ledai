@@ -240,6 +240,8 @@ async function buildYtDlpResolveArgs(url, platformHint = "unknown", youtubeProfi
     "--geo-bypass-country", "US"
   ];
   if (platformHint === "youtube") {
+    args.push("--ignore-no-formats-error");
+    args.push("--format", "bestvideo*+bestaudio/best");
     if (youtubeProfile === "default") {
       args.push("--extractor-args", "youtube:player_client=android,web");
     } else if (youtubeProfile === "mobile") {
@@ -773,6 +775,13 @@ function canonicalizeTikTokVideoUrl(value) {
   } catch {
     return normalizeInputUrl(value);
   }
+}
+
+function canonicalizeYouTubeVideoUrl(value) {
+  const normalized = normalizeInputUrl(value);
+  const videoId = extractYouTubeVideoId(normalized);
+  if (videoId) return `https://www.youtube.com/watch?v=${videoId}`;
+  return normalized;
 }
 
 async function buildTikTokProbeUrls(value) {
@@ -2108,6 +2117,9 @@ async function resolveFacebookVideo(url) {
 async function resolveVideoByPlatform(url) {
   const normalized = normalizeInputUrl(url);
   const platform = detectPlatform(normalized);
+  const normalizedForResolver = platform === "youtube"
+    ? canonicalizeYouTubeVideoUrl(normalized)
+    : normalized;
   let lastError = null;
 
   if (platform === "unknown") {
@@ -2115,21 +2127,21 @@ async function resolveVideoByPlatform(url) {
   }
 
   if (platform === "facebook") {
-    const result = await resolveFacebookVideo(normalized);
+    const result = await resolveFacebookVideo(normalizedForResolver);
     return postProcessByPlatform({
       ...result,
-      source_page_url: normalized,
+      source_page_url: normalizedForResolver,
       platform
     }, platform);
   }
 
   if (platform === "youtube") {
     try {
-      const innertube = await resolveYouTubeViaInnertube(normalized);
+      const innertube = await resolveYouTubeViaInnertube(normalizedForResolver);
       if (innertube?.qualities?.length) {
         return postProcessByPlatform({
           ...innertube,
-          source_page_url: normalized,
+          source_page_url: normalizedForResolver,
           resolver: "youtube_innertube",
           platform
         }, platform);
@@ -2138,11 +2150,11 @@ async function resolveVideoByPlatform(url) {
       lastError = normalizeProcessError(error, "Khong the doc du lieu YouTube bang innertube.");
     }
     try {
-      const ytdlpFirst = await resolveViaYtDlp(normalized, "youtube");
+      const ytdlpFirst = await resolveViaYtDlp(normalizedForResolver, "youtube");
       if (ytdlpFirst?.qualities?.length) {
         return postProcessByPlatform({
           ...ytdlpFirst,
-          source_page_url: normalized,
+          source_page_url: normalizedForResolver,
           resolver: "yt_dlp",
           platform
         }, platform);
@@ -2164,7 +2176,7 @@ async function resolveVideoByPlatform(url) {
   }
 
   if (platform === "tiktok") {
-    const probes = await buildTikTokProbeUrls(normalized);
+    const probes = await buildTikTokProbeUrls(normalizedForResolver);
     if (!probes.some((u) => isLikelyTikTokVideoUrl(u))) {
       throw createHttpError(400, "Link TikTok khong phai link video. Hay dan link co dang /video/... hoac vm.tiktok.com.");
     }
@@ -2216,11 +2228,11 @@ async function resolveVideoByPlatform(url) {
   }
 
   if (platform === "jimeng") {
-    const soraJimeng = await resolveViaSora(normalized, platform);
+    const soraJimeng = await resolveViaSora(normalizedForResolver, platform);
     if (soraJimeng?.qualities?.length) {
       return postProcessByPlatform({
         ...soraJimeng,
-        source_page_url: normalized,
+        source_page_url: normalizedForResolver,
         resolver: "sora2dl_jimeng",
         platform
       }, platform);
@@ -2229,11 +2241,11 @@ async function resolveVideoByPlatform(url) {
   }
 
   try {
-    const sora = await resolveViaSora(normalized, platform);
+    const sora = await resolveViaSora(normalizedForResolver, platform);
     if (sora?.qualities?.length) {
       return postProcessByPlatform({
         ...sora,
-        source_page_url: normalized,
+        source_page_url: normalizedForResolver,
         resolver: "sora2dl",
         platform
       }, platform);
@@ -2250,11 +2262,11 @@ async function resolveVideoByPlatform(url) {
   }
 
   try {
-    const ytdlp = await resolveViaYtDlp(normalized, platform);
+    const ytdlp = await resolveViaYtDlp(normalizedForResolver, platform);
     if (ytdlp?.qualities?.length) {
       return postProcessByPlatform({
         ...ytdlp,
-        source_page_url: normalized,
+        source_page_url: normalizedForResolver,
         resolver: "yt_dlp",
         platform
       }, platform);
