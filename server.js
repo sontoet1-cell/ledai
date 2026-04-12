@@ -1829,7 +1829,7 @@ function parseSoraTextPayload(text) {
 }
 
 function soraRefererByPlatform(platform) {
-  if (platform === "jimeng") return "https://sora2dl.com/jimeng";
+  if (platform === "jimeng") return "https://savevideoraw.com/jimeng";
   if (platform === "tiktok") return "https://sora2dl.com/tiktok";
   if (platform === "douyin") return "https://sora2dl.com/douyin";
   if (platform === "youtube") return "https://sora2dl.com/youtube";
@@ -1838,25 +1838,25 @@ function soraRefererByPlatform(platform) {
 
 async function resolveViaSora(url, platform = "unknown") {
   if (platform === "jimeng") {
-    const response = await fetch("https://sora2dl.com/apij.php", {
+    const response = await fetch("https://savevideoraw.com/apij.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...DEFAULT_HEADERS,
-        Referer: "https://sora2dl.com/jimeng",
-        Origin: "https://sora2dl.com"
+        Referer: "https://savevideoraw.com/jimeng",
+        Origin: "https://savevideoraw.com"
       },
       body: JSON.stringify({ text: url })
     });
 
     if (!response.ok) {
-      throw createHttpError(502, `Sora2dl Jimeng tra ve HTTP ${response.status}.`);
+      throw createHttpError(502, `Jimeng gateway tra ve HTTP ${response.status}.`);
     }
 
     const json = await response.json().catch(() => null);
     const normalized = normalizeJimengSoraPayload(json);
     if (!normalized) {
-      throw createHttpError(502, json?.error || "Sora2dl Jimeng khong tra du lieu hop le.");
+      throw createHttpError(502, json?.error || "Jimeng gateway khong tra du lieu hop le.");
     }
     return normalizeVideoResult(normalized, url);
   }

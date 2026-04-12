@@ -546,27 +546,31 @@ if (totpSecretInput && totpCodeEl && totpTimerEl && totpCopyBtn && totpStatusEl)
 
 const electricityForm = document.getElementById("electricity-form");
 const electricityKwhInput = document.getElementById("electricity-kwh");
+const electricityVatRateInput = document.getElementById("electricity-vat-rate");
+const electricityExtraFeeInput = document.getElementById("electricity-extra-fee");
 const electricityBeforeVatEl = document.getElementById("electricity-before-vat");
 const electricityVatEl = document.getElementById("electricity-vat");
+const electricityExtraEl = document.getElementById("electricity-extra");
 const electricityTotalEl = document.getElementById("electricity-total");
 const electricityBreakdownEl = document.getElementById("electricity-breakdown");
 
 const ELECTRICITY_TIERS = [
-  { cap: 50, price: 1962, label: "Bac 1" },
-  { cap: 50, price: 2028, label: "Bac 2" },
-  { cap: 100, price: 2354, label: "Bac 3" },
-  { cap: 100, price: 2965, label: "Bac 4" },
-  { cap: 100, price: 3314, label: "Bac 5" },
-  { cap: Infinity, price: 3423, label: "Bac 6" }
+  { cap: 50, price: 1984, label: "Bậc 1" },
+  { cap: 50, price: 2050, label: "Bậc 2" },
+  { cap: 100, price: 2380, label: "Bậc 3" },
+  { cap: 100, price: 2998, label: "Bậc 4" },
+  { cap: 100, price: 3350, label: "Bậc 5" },
+  { cap: Infinity, price: 3460, label: "Bậc 6" }
 ];
-const VAT_RATE = 0.08;
 
 function formatVnd(amount) {
   return `${Number(amount || 0).toLocaleString("vi-VN")} đ`;
 }
 
-function calculateElectricityBill(kwhInput) {
+function calculateElectricityBill(kwhInput, vatRatePercent, extraFeeInput) {
   const kwh = Math.max(0, Math.floor(Number(kwhInput) || 0));
+  const vatRate = Math.max(0, Number(vatRatePercent) || 0) / 100;
+  const extraFee = Math.max(0, Math.floor(Number(extraFeeInput) || 0));
   let remaining = kwh;
   let subtotal = 0;
   const detail = [];
@@ -585,15 +589,16 @@ function calculateElectricityBill(kwhInput) {
     remaining -= used;
   }
 
-  const vat = Math.round(subtotal * VAT_RATE);
-  const total = subtotal + vat;
-  return { kwh, subtotal, vat, total, detail };
+  const vat = Math.round(subtotal * vatRate);
+  const total = subtotal + vat + extraFee;
+  return { kwh, subtotal, vat, total, extraFee, detail, vatRatePercent: vatRate * 100 };
 }
 
 function renderElectricityBill(result) {
-  if (!electricityBeforeVatEl || !electricityVatEl || !electricityTotalEl || !electricityBreakdownEl) return;
+  if (!electricityBeforeVatEl || !electricityVatEl || !electricityExtraEl || !electricityTotalEl || !electricityBreakdownEl) return;
   electricityBeforeVatEl.textContent = formatVnd(result.subtotal);
-  electricityVatEl.textContent = `${formatVnd(result.vat)} (8%)`;
+  electricityVatEl.textContent = `${formatVnd(result.vat)} (${result.vatRatePercent.toFixed(1).replace(/\.0$/, "")}%)`;
+  electricityExtraEl.textContent = formatVnd(result.extraFee);
   electricityTotalEl.textContent = formatVnd(result.total);
 
   electricityBreakdownEl.innerHTML = "";
@@ -601,26 +606,32 @@ function renderElectricityBill(result) {
     const line = document.createElement("div");
     line.className = "flex items-center justify-between border-b border-white/5 pb-2";
     line.innerHTML = `
-      <span class="text-slate-300">${row.label} (${row.used} kWh x ${row.price.toLocaleString("vi-VN")} đ):</span>
+      <span class="text-slate-300">${row.label} (${row.used} kWh × ${row.price.toLocaleString("vi-VN")} đ):</span>
       <strong class="text-slate-100">${formatVnd(row.cost)}</strong>
     `;
     electricityBreakdownEl.appendChild(line);
   }
 }
 
-if (electricityForm && electricityKwhInput) {
+if (electricityForm && electricityKwhInput && electricityVatRateInput && electricityExtraFeeInput) {
   electricityForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const raw = Number(electricityKwhInput.value);
     if (!Number.isFinite(raw) || raw <= 0) {
       electricityKwhInput.focus();
-      alert("Vui long nhap so kWh hop le (>0).");
+      alert("Vui lòng nhập số kWh hợp lệ (>0).");
       return;
     }
-    const bill = calculateElectricityBill(raw);
+    const bill = calculateElectricityBill(raw, electricityVatRateInput.value, electricityExtraFeeInput.value);
     renderElectricityBill(bill);
   });
 
-  const initBill = calculateElectricityBill(Number(electricityKwhInput.value || 0));
-  renderElectricityBill(initBill);
+  const renderPreview = () => {
+    const kwh = Number(electricityKwhInput.value || 0);
+    const bill = calculateElectricityBill(kwh, electricityVatRateInput.value, electricityExtraFeeInput.value);
+    renderElectricityBill(bill);
+  };
+  electricityVatRateInput.addEventListener("input", renderPreview);
+  electricityExtraFeeInput.addEventListener("input", renderPreview);
+  renderPreview();
 }
