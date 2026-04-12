@@ -1,4 +1,4 @@
-const form = document.getElementById("download-form");
+﻿const form = document.getElementById("download-form");
 const input = document.getElementById("url");
 const submitBtn = document.getElementById("submit-btn");
 const statusText = document.getElementById("status");
@@ -32,13 +32,13 @@ function setProgress(value, label) {
   const percent = Math.max(0, Math.min(100, Math.floor(Number(value) || 0)));
   progressWrap.classList.add("active");
   progressBar.style.width = `${percent}%`;
-  progressLabel.textContent = `${percent}% - ${label || "Đang xử lý..."}`;
+  progressLabel.textContent = `${percent}% - ${label || "Äang xá»­ lÃ½..."}`;
 }
 
 function resetProgress() {
   progressWrap.classList.remove("active");
   progressBar.style.width = "0%";
-  progressLabel.textContent = "Đang chờ xử lý...";
+  progressLabel.textContent = "Äang chá» xá»­ lÃ½...";
 }
 
 function makeDirectDownloadUrl(item, name) {
@@ -61,7 +61,7 @@ function resetResult() {
   itemIdEl.textContent = "";
   titleEl.textContent = "";
   downloadBest.setAttribute("href", "#");
-  downloadBest.textContent = "Xử lý HD";
+  downloadBest.textContent = "Xá»­ lÃ½ HD";
   downloadBest.dataset.mode = "idle";
   qualityList.innerHTML = "";
   currentBestItem = null;
@@ -73,6 +73,43 @@ function resetResult() {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function startResolveProgress() {
+  const stages = [
+    { progress: 8, label: "Đang kiểm tra định dạng link..." },
+    { progress: 24, label: "Đang kết nối máy chủ phân tích..." },
+    { progress: 42, label: "Đang bóc tách nguồn video..." },
+    { progress: 63, label: "Đang dò các mức chất lượng..." },
+    { progress: 81, label: "Đang dựng thumbnail và kết quả..." },
+    { progress: 92, label: "Sắp xong, chuẩn bị hiển thị video..." }
+  ];
+
+  let index = 0;
+  setProgress(stages[0].progress, stages[0].label);
+  setStatus(stages[0].label);
+
+  const timer = setInterval(() => {
+    index = Math.min(index + 1, stages.length - 1);
+    const step = stages[index];
+    setProgress(step.progress, step.label);
+    setStatus(step.label);
+    if (index >= stages.length - 1) {
+      clearInterval(timer);
+    }
+  }, 650);
+
+  return {
+    complete(label) {
+      clearInterval(timer);
+      setProgress(100, label || "Hoàn tất, video đã sẵn sàng.");
+      setStatus(label || "Hoàn tất, video đã sẵn sàng.");
+    },
+    fail() {
+      clearInterval(timer);
+      resetProgress();
+    }
+  };
 }
 
 function normalizeSupportedInput(rawInput) {
@@ -135,8 +172,8 @@ function renderQualities(itemId, qualities) {
     a.target = "_blank";
     a.rel = "noopener";
     a.style.cssText = qualityClassByQuality(quality);
-    const soundTag = item?.has_audio ? "Có tiếng" : (item?.audio_url ? "Cần ghép" : "Không tiếng");
-    a.textContent = `${quality} · ${soundTag}`;
+    const soundTag = item?.has_audio ? "CÃ³ tiáº¿ng" : (item?.audio_url ? "Cáº§n ghÃ©p" : "KhÃ´ng tiáº¿ng");
+    a.textContent = `${quality} Â· ${soundTag}`;
     qualityList.appendChild(a);
   });
 }
@@ -160,11 +197,11 @@ async function resolveWithRetry(url) {
 
       if (!response.ok) {
         if (response.status >= 500 && attempt === 0) {
-          setStatus(`Máy chủ lỗi ${response.status}, đang thử lại...`);
+          setStatus(`MÃ¡y chá»§ lá»—i ${response.status}, Ä‘ang thá»­ láº¡i...`);
           await sleep(900);
           continue;
         }
-        throw new Error(`HTTP ${response.status}: ${payload?.error || "Không thể xử lý link này."}`);
+        throw new Error(`HTTP ${response.status}: ${payload?.error || "KhÃ´ng thá»ƒ xá»­ lÃ½ link nÃ y."}`);
       }
 
       return payload || {};
@@ -173,14 +210,14 @@ async function resolveWithRetry(url) {
       const message = String(error?.message || "").toLowerCase();
       const retryable = message.includes("failed to fetch") || message.includes("network");
       if (retryable && attempt === 0) {
-        setStatus("Kết nối không ổn định, đang thử lại...");
+        setStatus("Káº¿t ná»‘i khÃ´ng á»•n Ä‘á»‹nh, Ä‘ang thá»­ láº¡i...");
         await sleep(900);
         continue;
       }
       throw error;
     }
   }
-  throw lastError || new Error("Không thể xử lý link này.");
+  throw lastError || new Error("KhÃ´ng thá»ƒ xá»­ lÃ½ link nÃ y.");
 }
 
 async function createProcessJob(item, itemId) {
@@ -199,7 +236,7 @@ async function createProcessJob(item, itemId) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${payload?.error || "Không tạo được job xử lý."}`);
+    throw new Error(`HTTP ${response.status}: ${payload?.error || "KhÃ´ng táº¡o Ä‘Æ°á»£c job xá»­ lÃ½."}`);
   }
   return payload;
 }
@@ -210,22 +247,22 @@ async function pollProcessJob(id) {
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${payload?.error || "Không đọc được tiến trình."}`);
+      throw new Error(`HTTP ${response.status}: ${payload?.error || "KhÃ´ng Ä‘á»c Ä‘Æ°á»£c tiáº¿n trÃ¬nh."}`);
     }
 
-    setProgress(payload.progress || 0, payload.stage || "Đang xử lý...");
+    setProgress(payload.progress || 0, payload.stage || "Äang xá»­ lÃ½...");
 
     if (payload.status === "done") {
       return payload;
     }
     if (payload.status === "error") {
-      throw new Error(payload.error || "Xử lý thất bại.");
+      throw new Error(payload.error || "Xá»­ lÃ½ tháº¥t báº¡i.");
     }
 
     await sleep(700);
   }
 
-  throw new Error("Xử lý quá lâu, vui lòng thử lại.");
+  throw new Error("Xá»­ lÃ½ quÃ¡ lÃ¢u, vui lÃ²ng thá»­ láº¡i.");
 }
 
 downloadBest.addEventListener("click", async (event) => {
@@ -234,35 +271,35 @@ downloadBest.addEventListener("click", async (event) => {
 
   event.preventDefault();
   if (!currentBestItem?.url) {
-    setStatus("Chưa có dữ liệu video để xử lý.", true);
+    setStatus("ChÆ°a cÃ³ dá»¯ liá»‡u video Ä‘á»ƒ xá»­ lÃ½.", true);
     return;
   }
 
   try {
     downloadBest.dataset.mode = "processing";
-    downloadBest.textContent = "Đang xử lý...";
+    downloadBest.textContent = "Äang xá»­ lÃ½...";
     downloadBest.style.pointerEvents = "none";
-    setProgress(2, "Đang tạo tiến trình xử lý");
-    setStatus("Đang xử lý hậu kỳ và ghép audio...");
+    setProgress(2, "Äang táº¡o tiáº¿n trÃ¬nh xá»­ lÃ½");
+    setStatus("Äang xá»­ lÃ½ háº­u ká»³ vÃ  ghÃ©p audio...");
 
     const started = await createProcessJob(currentBestItem, currentItemId);
     const finalJob = await pollProcessJob(started.id);
 
     if (!finalJob.download_url) {
-      throw new Error("Không nhận được link tải file cuối.");
+      throw new Error("KhÃ´ng nháº­n Ä‘Æ°á»£c link táº£i file cuá»‘i.");
     }
 
     downloadBest.href = finalJob.download_url;
     downloadBest.dataset.mode = "ready";
-    downloadBest.textContent = "Tải File Đã Xử Lý";
+    downloadBest.textContent = "Táº£i File ÄÃ£ Xá»­ LÃ½";
     downloadBest.style.pointerEvents = "auto";
-    setProgress(100, "Hoàn tất, bấm nút để tải file");
-    setStatus("Xử lý xong. Bấm 'Tải File Đã Xử Lý' để tải.");
+    setProgress(100, "HoÃ n táº¥t, báº¥m nÃºt Ä‘á»ƒ táº£i file");
+    setStatus("Xá»­ lÃ½ xong. Báº¥m 'Táº£i File ÄÃ£ Xá»­ LÃ½' Ä‘á»ƒ táº£i.");
   } catch (error) {
     downloadBest.dataset.mode = "process";
-    downloadBest.textContent = "Xử lý HD";
+    downloadBest.textContent = "Xá»­ lÃ½ HD";
     downloadBest.style.pointerEvents = "auto";
-    setStatus(error.message || "Xử lý thất bại.", true);
+    setStatus(error.message || "Xá»­ lÃ½ tháº¥t báº¡i.", true);
   }
 });
 
@@ -271,26 +308,26 @@ form.addEventListener("submit", async (event) => {
 
   const finalUrl = normalizeSupportedInput(input.value);
   if (!finalUrl) {
-    setStatus("Không tìm thấy link hợp lệ.", true);
+    setStatus("KhÃ´ng tÃ¬m tháº¥y link há»£p lá»‡.", true);
     resetResult();
     return;
   }
   if (isYouTubeUrl(finalUrl)) {
-    setStatus("YouTube tạm thời đã tắt trên máy chủ này.", true);
+    setStatus("YouTube táº¡m thá»i Ä‘Ã£ táº¯t trÃªn mÃ¡y chá»§ nÃ y.", true);
     resetResult();
     return;
   }
   input.value = finalUrl;
 
   submitBtn.disabled = true;
-  setStatus("Đang phân tích link...");
+  setStatus("Äang phÃ¢n tÃ­ch link...");
   resetResult();
 
   try {
     const payload = await resolveWithRetry(finalUrl);
     const qualities = Array.isArray(payload.qualities) ? payload.qualities : [];
     if (qualities.length === 0) {
-      throw new Error("Không tìm thấy file để tải.");
+      throw new Error("KhÃ´ng tÃ¬m tháº¥y file Ä‘á»ƒ táº£i.");
     }
 
     const itemId = payload.item_id || "N/A";
@@ -308,19 +345,19 @@ form.addEventListener("submit", async (event) => {
     const platform = payload.platform ? ` [${String(payload.platform).toUpperCase()}]` : "";
     titleEl.textContent = payload.title
       ? `${payload.title}${platform} (Uu tien: ${bestQuality})`
-      : `Đã tìm thấy video${platform}. Ưu tiên: ${bestQuality}.`;
+      : `ÄÃ£ tÃ¬m tháº¥y video${platform}. Æ¯u tiÃªn: ${bestQuality}.`;
 
     const directUrl = makeDirectDownloadUrl(best, `tienich.pro_${itemId || Date.now()}_best.mp4`);
     if (!currentRequiresPostprocess || currentPlatform === "tiktok") {
       downloadBest.href = directUrl;
       downloadBest.dataset.mode = "direct";
-      downloadBest.textContent = "Tải Bản Tốt Nhất";
+      downloadBest.textContent = "Táº£i Báº£n Tá»‘t Nháº¥t";
       downloadBest.style.pointerEvents = "auto";
       resetProgress();
     } else {
       downloadBest.href = "#";
       downloadBest.dataset.mode = "process";
-      downloadBest.textContent = "Xử Lý HD Và Ghép Tiếng";
+      downloadBest.textContent = "Xá»­ LÃ½ HD VÃ  GhÃ©p Tiáº¿ng";
       downloadBest.style.pointerEvents = "auto";
     }
 
@@ -329,14 +366,14 @@ form.addEventListener("submit", async (event) => {
 
     const needMerge = currentRequiresPostprocess && !!best.audio_url && !best.has_audio;
     if (currentPlatform === "tiktok") {
-      setStatus("TikTok: đã chọn bản có tiếng tốt nhất. Bấm tải trực tiếp.");
+      setStatus("TikTok: Ä‘Ã£ chá»n báº£n cÃ³ tiáº¿ng tá»‘t nháº¥t. Báº¥m táº£i trá»±c tiáº¿p.");
     } else if (needMerge) {
-      setStatus("Đã tìm thấy bản chất lượng cao tách audio. Bấm nút để xử lý và ghép.");
+      setStatus("ÄÃ£ tÃ¬m tháº¥y báº£n cháº¥t lÆ°á»£ng cao tÃ¡ch audio. Báº¥m nÃºt Ä‘á»ƒ xá»­ lÃ½ vÃ  ghÃ©p.");
     } else {
-      setStatus("Đã tìm thấy bản cao nhất có tiếng. Bấm nút để tải trực tiếp.");
+      setStatus("ÄÃ£ tÃ¬m tháº¥y báº£n cao nháº¥t cÃ³ tiáº¿ng. Báº¥m nÃºt Ä‘á»ƒ táº£i trá»±c tiáº¿p.");
     }
   } catch (error) {
-    setStatus(error.message || "Đã có lỗi trong quá trình xử lý.", true);
+    setStatus(error.message || "ÄÃ£ cÃ³ lá»—i trong quÃ¡ trÃ¬nh xá»­ lÃ½.", true);
     resetResult();
   } finally {
     submitBtn.disabled = false;
@@ -400,16 +437,16 @@ if (fbIdForm && fbIdInput && fbIdBtn && fbIdResult) {
 if (fbIdCopyBtn && fbIdResult) {
   fbIdCopyBtn.addEventListener("click", async () => {
     if (!currentFacebookId) {
-      fbIdResult.textContent = "Chưa có Facebook ID để copy.";
+      fbIdResult.textContent = "ChÆ°a cÃ³ Facebook ID Ä‘á»ƒ copy.";
       fbIdResult.style.color = "#f87171";
       return;
     }
     try {
       await navigator.clipboard.writeText(currentFacebookId);
-      fbIdResult.textContent = `Đã copy Facebook ID: ${currentFacebookId}`;
+      fbIdResult.textContent = `ÄÃ£ copy Facebook ID: ${currentFacebookId}`;
       fbIdResult.style.color = "#22c55e";
     } catch {
-      fbIdResult.textContent = "Không copy được. Hãy copy thủ công.";
+      fbIdResult.textContent = "KhÃ´ng copy Ä‘Æ°á»£c. HÃ£y copy thá»§ cÃ´ng.";
       fbIdResult.style.color = "#f87171";
     }
   });
@@ -445,25 +482,25 @@ function base32ToBytes(input) {
 function parseAuthenticatorSecret(input) {
   const raw = String(input || "").trim().replace(/\s+/g, "");
   if (!raw) {
-    throw new Error("Vui lòng nhập secret key 2FA.");
+    throw new Error("Vui lÃ²ng nháº­p secret key 2FA.");
   }
   if (/^otpauth:\/\//i.test(raw)) {
     try {
       const parsed = new URL(raw);
       const secretFromUrl = String(parsed.searchParams.get("secret") || "").trim();
       if (!secretFromUrl) {
-        throw new Error("Chuỗi otpauth thiếu secret.");
+        throw new Error("Chuá»—i otpauth thiáº¿u secret.");
       }
       if (!/^[A-Z2-7]+=*$/i.test(secretFromUrl)) {
-        throw new Error("Secret trong otpauth không đúng Base32.");
+        throw new Error("Secret trong otpauth khÃ´ng Ä‘Ãºng Base32.");
       }
       return secretFromUrl;
     } catch {
-      throw new Error("Chuỗi otpauth không hợp lệ.");
+      throw new Error("Chuá»—i otpauth khÃ´ng há»£p lá»‡.");
     }
   }
   if (!/^[A-Z2-7]+=*$/i.test(raw)) {
-    throw new Error("Secret key không đúng định dạng Base32.");
+    throw new Error("Secret key khÃ´ng Ä‘Ãºng Ä‘á»‹nh dáº¡ng Base32.");
   }
   return raw;
 }
@@ -507,7 +544,7 @@ async function updateTotpView() {
 
   if (!secret) {
     totpCodeEl.textContent = "------";
-    totpStatusEl.textContent = "Nhập secret key để tạo mã 2FA.";
+    totpStatusEl.textContent = "Nháº­p secret key Ä‘á»ƒ táº¡o mÃ£ 2FA.";
     totpStatusEl.style.color = "#94a3b8";
     return;
   }
@@ -516,11 +553,11 @@ async function updateTotpView() {
     const parsedSecret = parseAuthenticatorSecret(secret);
     const code = await generateTotp(parsedSecret);
     totpCodeEl.textContent = code;
-    totpStatusEl.textContent = "Mã 2FA đang hoạt động.";
+    totpStatusEl.textContent = "MÃ£ 2FA Ä‘ang hoáº¡t Ä‘á»™ng.";
     totpStatusEl.style.color = "#22c55e";
   } catch (error) {
     totpCodeEl.textContent = "------";
-    totpStatusEl.textContent = error.message || "Secret key không hợp lệ.";
+    totpStatusEl.textContent = error.message || "Secret key khÃ´ng há»£p lá»‡.";
     totpStatusEl.style.color = "#f87171";
   }
 }
@@ -536,16 +573,16 @@ if (totpSecretInput && totpCodeEl && totpTimerEl && totpCopyBtn && totpStatusEl)
   totpCopyBtn.addEventListener("click", async () => {
     const code = String(totpCodeEl.textContent || "").trim();
     if (!/^\d{6}$/.test(code)) {
-      totpStatusEl.textContent = "Chưa có mã hợp lệ để copy.";
+      totpStatusEl.textContent = "ChÆ°a cÃ³ mÃ£ há»£p lá»‡ Ä‘á»ƒ copy.";
       totpStatusEl.style.color = "#f87171";
       return;
     }
     try {
       await navigator.clipboard.writeText(code);
-      totpStatusEl.textContent = "Đã copy mã 2FA.";
+      totpStatusEl.textContent = "ÄÃ£ copy mÃ£ 2FA.";
       totpStatusEl.style.color = "#22c55e";
     } catch {
-      totpStatusEl.textContent = "Không copy được. Hãy copy thủ công.";
+      totpStatusEl.textContent = "KhÃ´ng copy Ä‘Æ°á»£c. HÃ£y copy thá»§ cÃ´ng.";
       totpStatusEl.style.color = "#f87171";
     }
   });
@@ -563,16 +600,16 @@ const electricityTotalEl = document.getElementById("electricity-total");
 const electricityBreakdownEl = document.getElementById("electricity-breakdown");
 
 const ELECTRICITY_TIERS = [
-  { cap: 50, price: 1984, label: "Bậc 1" },
-  { cap: 50, price: 2050, label: "Bậc 2" },
-  { cap: 100, price: 2380, label: "Bậc 3" },
-  { cap: 100, price: 2998, label: "Bậc 4" },
-  { cap: 100, price: 3350, label: "Bậc 5" },
-  { cap: Infinity, price: 3460, label: "Bậc 6" }
+  { cap: 50, price: 1984, label: "Báº­c 1" },
+  { cap: 50, price: 2050, label: "Báº­c 2" },
+  { cap: 100, price: 2380, label: "Báº­c 3" },
+  { cap: 100, price: 2998, label: "Báº­c 4" },
+  { cap: 100, price: 3350, label: "Báº­c 5" },
+  { cap: Infinity, price: 3460, label: "Báº­c 6" }
 ];
 
 function formatVnd(amount) {
-  return `${Number(amount || 0).toLocaleString("vi-VN")} đ`;
+  return `${Number(amount || 0).toLocaleString("vi-VN")} Ä‘`;
 }
 
 function calculateElectricityBill(kwhInput, vatRatePercent, extraFeeInput) {
@@ -614,7 +651,7 @@ function renderElectricityBill(result) {
     const line = document.createElement("div");
     line.className = "flex items-center justify-between border-b border-white/5 pb-2";
     line.innerHTML = `
-      <span class="text-slate-300">${row.label} (${row.used} kWh × ${row.price.toLocaleString("vi-VN")} đ):</span>
+      <span class="text-slate-300">${row.label} (${row.used} kWh Ã— ${row.price.toLocaleString("vi-VN")} Ä‘):</span>
       <strong class="text-slate-100">${formatVnd(row.cost)}</strong>
     `;
     electricityBreakdownEl.appendChild(line);
@@ -627,7 +664,7 @@ if (electricityForm && electricityKwhInput && electricityVatRateInput && electri
     const raw = Number(electricityKwhInput.value);
     if (!Number.isFinite(raw) || raw <= 0) {
       electricityKwhInput.focus();
-      alert("Vui lòng nhập số kWh hợp lệ (>0).");
+      alert("Vui lÃ²ng nháº­p sá»‘ kWh há»£p lá»‡ (>0).");
       return;
     }
     const bill = calculateElectricityBill(raw, electricityVatRateInput.value, electricityExtraFeeInput.value);
@@ -649,12 +686,12 @@ const randomRoleEl = document.querySelector("[data-random-role]");
 
 if (randomReviewerEl && randomRoleEl) {
   const reviewerPool = [
-    { name: "Trần Hải Đăng", role: "Video Editor" },
-    { name: "Phạm Minh Tú", role: "Digital Marketer" },
-    { name: "Ngô Quốc Huy", role: "Freelancer" },
-    { name: "Đỗ Thành Nam", role: "Content Creator" },
-    { name: "Vũ Gia Hân", role: "Social Media Manager" },
-    { name: "Lê Đức Khôi", role: "Media Buyer" }
+    { name: "Tráº§n Háº£i ÄÄƒng", role: "Video Editor" },
+    { name: "Pháº¡m Minh TÃº", role: "Digital Marketer" },
+    { name: "NgÃ´ Quá»‘c Huy", role: "Freelancer" },
+    { name: "Äá»— ThÃ nh Nam", role: "Content Creator" },
+    { name: "VÅ© Gia HÃ¢n", role: "Social Media Manager" },
+    { name: "LÃª Äá»©c KhÃ´i", role: "Media Buyer" }
   ];
   const picked = reviewerPool[Math.floor(Math.random() * reviewerPool.length)];
   randomReviewerEl.textContent = picked.name;
@@ -667,3 +704,4 @@ document.querySelectorAll("[data-nav]").forEach((link) => {
     link.classList.add("is-active");
   }
 });
+
