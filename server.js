@@ -1,4 +1,4 @@
-const http = require("http");
+﻿const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -2723,7 +2723,12 @@ function readRequestBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (req.method === "GET" && req.url === "/healthz") {
+  if ((req.method === "GET" || req.method === "HEAD") && req.url === "/healthz") {
+    if (req.method === "HEAD") {
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      res.end();
+      return;
+    }
     sendJson(res, 200, { ok: true, uptime: process.uptime() });
     return;
   }
@@ -3131,3 +3136,4 @@ server.listen(PORT, () => {
   console.log(`[boot] tikwm=${TIKWM_API_BASE}`);
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
