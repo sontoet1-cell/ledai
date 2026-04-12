@@ -32,13 +32,13 @@ function setProgress(value, label) {
   const percent = Math.max(0, Math.min(100, Math.floor(Number(value) || 0)));
   progressWrap.classList.add("active");
   progressBar.style.width = `${percent}%`;
-  progressLabel.textContent = `${percent}% - ${label || "Äang xá»­ lÃ½..."}`;
+  progressLabel.textContent = `${percent}% - ${label || "Đang xử lý..."}`;
 }
 
 function resetProgress() {
   progressWrap.classList.remove("active");
   progressBar.style.width = "0%";
-  progressLabel.textContent = "Äang chá» xá»­ lÃ½...";
+  progressLabel.textContent = "Đang chờ xử lý...";
 }
 
 function makeDirectDownloadUrl(item, name) {
@@ -61,7 +61,7 @@ function resetResult() {
   itemIdEl.textContent = "";
   titleEl.textContent = "";
   downloadBest.setAttribute("href", "#");
-  downloadBest.textContent = "Xá»­ lÃ½ HD";
+  downloadBest.textContent = "Xử lý HD";
   downloadBest.dataset.mode = "idle";
   qualityList.innerHTML = "";
   currentBestItem = null;
@@ -172,8 +172,8 @@ function renderQualities(itemId, qualities) {
     a.target = "_blank";
     a.rel = "noopener";
     a.style.cssText = qualityClassByQuality(quality);
-    const soundTag = item?.has_audio ? "CÃ³ tiáº¿ng" : (item?.audio_url ? "Cáº§n ghÃ©p" : "KhÃ´ng tiáº¿ng");
-    a.textContent = `${quality} Â· ${soundTag}`;
+    const soundTag = item?.has_audio ? "Có tiếng" : (item?.audio_url ? "Cần ghép" : "Không tiếng");
+    a.textContent = `${quality} · ${soundTag}`;
     qualityList.appendChild(a);
   });
 }
@@ -197,11 +197,11 @@ async function resolveWithRetry(url) {
 
       if (!response.ok) {
         if (response.status >= 500 && attempt === 0) {
-          setStatus(`MÃ¡y chá»§ lá»—i ${response.status}, Ä‘ang thá»­ láº¡i...`);
+          setStatus(`Máy chủ lỗi ${response.status}, đang thử lại...`);
           await sleep(900);
           continue;
         }
-        throw new Error(`HTTP ${response.status}: ${payload?.error || "KhÃ´ng thá»ƒ xá»­ lÃ½ link nÃ y."}`);
+        throw new Error(`HTTP ${response.status}: ${payload?.error || "Không thể xử lý link này."}`);
       }
 
       return payload || {};
@@ -210,14 +210,14 @@ async function resolveWithRetry(url) {
       const message = String(error?.message || "").toLowerCase();
       const retryable = message.includes("failed to fetch") || message.includes("network");
       if (retryable && attempt === 0) {
-        setStatus("Káº¿t ná»‘i khÃ´ng á»•n Ä‘á»‹nh, Ä‘ang thá»­ láº¡i...");
+        setStatus("Kết nối không ổn định, đang thử lại...");
         await sleep(900);
         continue;
       }
       throw error;
     }
   }
-  throw lastError || new Error("KhÃ´ng thá»ƒ xá»­ lÃ½ link nÃ y.");
+  throw lastError || new Error("Không thể xử lý link này.");
 }
 
 async function createProcessJob(item, itemId) {
@@ -236,7 +236,7 @@ async function createProcessJob(item, itemId) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${payload?.error || "KhÃ´ng táº¡o Ä‘Æ°á»£c job xá»­ lÃ½."}`);
+    throw new Error(`HTTP ${response.status}: ${payload?.error || "Không tạo được job xử lý."}`);
   }
   return payload;
 }
@@ -247,22 +247,22 @@ async function pollProcessJob(id) {
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${payload?.error || "KhÃ´ng Ä‘á»c Ä‘Æ°á»£c tiáº¿n trÃ¬nh."}`);
+      throw new Error(`HTTP ${response.status}: ${payload?.error || "Không đọc được tiến trình."}`);
     }
 
-    setProgress(payload.progress || 0, payload.stage || "Äang xá»­ lÃ½...");
+    setProgress(payload.progress || 0, payload.stage || "Đang xử lý...");
 
     if (payload.status === "done") {
       return payload;
     }
     if (payload.status === "error") {
-      throw new Error(payload.error || "Xá»­ lÃ½ tháº¥t báº¡i.");
+      throw new Error(payload.error || "Xử lý thất bại.");
     }
 
     await sleep(700);
   }
 
-  throw new Error("Xá»­ lÃ½ quÃ¡ lÃ¢u, vui lÃ²ng thá»­ láº¡i.");
+  throw new Error("Xử lý quá lâu, vui lòng thử lại.");
 }
 
 downloadBest.addEventListener("click", async (event) => {
@@ -271,35 +271,35 @@ downloadBest.addEventListener("click", async (event) => {
 
   event.preventDefault();
   if (!currentBestItem?.url) {
-    setStatus("ChÆ°a cÃ³ dá»¯ liá»‡u video Ä‘á»ƒ xá»­ lÃ½.", true);
+    setStatus("Chưa có dữ liệu video để xử lý.", true);
     return;
   }
 
   try {
     downloadBest.dataset.mode = "processing";
-    downloadBest.textContent = "Äang xá»­ lÃ½...";
+    downloadBest.textContent = "Đang xử lý...";
     downloadBest.style.pointerEvents = "none";
-    setProgress(2, "Äang táº¡o tiáº¿n trÃ¬nh xá»­ lÃ½");
-    setStatus("Äang xá»­ lÃ½ háº­u ká»³ vÃ  ghÃ©p audio...");
+    setProgress(2, "Đang tạo tiến trình xử lý");
+    setStatus("Đang xử lý hậu kỳ và ghép audio...");
 
     const started = await createProcessJob(currentBestItem, currentItemId);
     const finalJob = await pollProcessJob(started.id);
 
     if (!finalJob.download_url) {
-      throw new Error("KhÃ´ng nháº­n Ä‘Æ°á»£c link táº£i file cuá»‘i.");
+      throw new Error("Không nhận được link tải file cuối.");
     }
 
     downloadBest.href = finalJob.download_url;
     downloadBest.dataset.mode = "ready";
-    downloadBest.textContent = "Táº£i File ÄÃ£ Xá»­ LÃ½";
+    downloadBest.textContent = "Tải File Đã Xử Lý";
     downloadBest.style.pointerEvents = "auto";
-    setProgress(100, "HoÃ n táº¥t, báº¥m nÃºt Ä‘á»ƒ táº£i file");
-    setStatus("Xá»­ lÃ½ xong. Báº¥m 'Táº£i File ÄÃ£ Xá»­ LÃ½' Ä‘á»ƒ táº£i.");
+    setProgress(100, "Hoàn tất, bấm nút để tải file");
+    setStatus("Xử lý xong. Bấm 'Tải File Đã Xử Lý' để tải.");
   } catch (error) {
     downloadBest.dataset.mode = "process";
-    downloadBest.textContent = "Xá»­ lÃ½ HD";
+    downloadBest.textContent = "Xử lý HD";
     downloadBest.style.pointerEvents = "auto";
-    setStatus(error.message || "Xá»­ lÃ½ tháº¥t báº¡i.", true);
+    setStatus(error.message || "Xử lý thất bại.", true);
   }
 });
 
@@ -308,26 +308,26 @@ form.addEventListener("submit", async (event) => {
 
   const finalUrl = normalizeSupportedInput(input.value);
   if (!finalUrl) {
-    setStatus("KhÃ´ng tÃ¬m tháº¥y link há»£p lá»‡.", true);
+    setStatus("Không tìm thấy link hợp lệ.", true);
     resetResult();
     return;
   }
   if (isYouTubeUrl(finalUrl)) {
-    setStatus("YouTube táº¡m thá»i Ä‘Ã£ táº¯t trÃªn mÃ¡y chá»§ nÃ y.", true);
+    setStatus("YouTube tạm thời đã tắt trên máy chủ này.", true);
     resetResult();
     return;
   }
   input.value = finalUrl;
 
   submitBtn.disabled = true;
-  setStatus("Äang phÃ¢n tÃ­ch link...");
   resetResult();
+  const resolveProgress = startResolveProgress();
 
   try {
     const payload = await resolveWithRetry(finalUrl);
     const qualities = Array.isArray(payload.qualities) ? payload.qualities : [];
     if (qualities.length === 0) {
-      throw new Error("KhÃ´ng tÃ¬m tháº¥y file Ä‘á»ƒ táº£i.");
+      throw new Error("Không tìm thấy file để tải.");
     }
 
     const itemId = payload.item_id || "N/A";
@@ -344,36 +344,39 @@ form.addEventListener("submit", async (event) => {
     itemIdEl.textContent = `video_id: ${itemId}`;
     const platform = payload.platform ? ` [${String(payload.platform).toUpperCase()}]` : "";
     titleEl.textContent = payload.title
-      ? `${payload.title}${platform} (Uu tien: ${bestQuality})`
-      : `ÄÃ£ tÃ¬m tháº¥y video${platform}. Æ¯u tiÃªn: ${bestQuality}.`;
+      ? `${payload.title}${platform} (Ưu tiên: ${bestQuality})`
+      : `Đã tìm thấy video${platform}. Ưu tiên: ${bestQuality}.`;
 
     const directUrl = makeDirectDownloadUrl(best, `tienich.pro_${itemId || Date.now()}_best.mp4`);
     if (!currentRequiresPostprocess || currentPlatform === "tiktok") {
       downloadBest.href = directUrl;
       downloadBest.dataset.mode = "direct";
-      downloadBest.textContent = "Táº£i Báº£n Tá»‘t Nháº¥t";
+      downloadBest.textContent = "Tải Bản Tốt Nhất";
       downloadBest.style.pointerEvents = "auto";
-      resetProgress();
+      setProgress(100, "Đã tìm thấy video, bấm nút để tải ngay.");
     } else {
       downloadBest.href = "#";
       downloadBest.dataset.mode = "process";
-      downloadBest.textContent = "Xá»­ LÃ½ HD VÃ  GhÃ©p Tiáº¿ng";
+      downloadBest.textContent = "Xử Lý HD Và Ghép Tiếng";
       downloadBest.style.pointerEvents = "auto";
+      setProgress(100, "Đã tìm thấy bản HD, bấm nút để xử lý tiếp.");
     }
 
     renderQualities(itemId, qualities);
     resultSection.classList.remove("hidden");
+    resolveProgress.complete("Phân tích xong, video đã sẵn sàng.");
 
     const needMerge = currentRequiresPostprocess && !!best.audio_url && !best.has_audio;
     if (currentPlatform === "tiktok") {
-      setStatus("TikTok: Ä‘Ã£ chá»n báº£n cÃ³ tiáº¿ng tá»‘t nháº¥t. Báº¥m táº£i trá»±c tiáº¿p.");
+      setStatus("TikTok: đã chọn bản có tiếng tốt nhất. Bấm tải trực tiếp.");
     } else if (needMerge) {
-      setStatus("ÄÃ£ tÃ¬m tháº¥y báº£n cháº¥t lÆ°á»£ng cao tÃ¡ch audio. Báº¥m nÃºt Ä‘á»ƒ xá»­ lÃ½ vÃ  ghÃ©p.");
+      setStatus("Đã tìm thấy bản chất lượng cao tách audio. Bấm nút để xử lý và ghép.");
     } else {
-      setStatus("ÄÃ£ tÃ¬m tháº¥y báº£n cao nháº¥t cÃ³ tiáº¿ng. Báº¥m nÃºt Ä‘á»ƒ táº£i trá»±c tiáº¿p.");
+      setStatus("Đã tìm thấy bản cao nhất có tiếng. Bấm nút để tải trực tiếp.");
     }
   } catch (error) {
-    setStatus(error.message || "ÄÃ£ cÃ³ lá»—i trong quÃ¡ trÃ¬nh xá»­ lÃ½.", true);
+    resolveProgress.fail();
+    setStatus(error.message || "Đã có lỗi trong quá trình xử lý.", true);
     resetResult();
   } finally {
     submitBtn.disabled = false;
@@ -399,7 +402,7 @@ if (fbIdForm && fbIdInput && fbIdBtn && fbIdResult) {
     }
 
     fbIdBtn.disabled = true;
-    fbIdResult.textContent = "Dang truy van Facebook ID...";
+    fbIdResult.textContent = "Đang truy vấn Facebook ID...";
     fbIdResult.style.color = "#facc15";
 
     try {
