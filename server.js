@@ -225,16 +225,17 @@ async function getEffectiveYtDlpProxy() {
   return YTDLP_PROXY || "";
 }
 
-async function appendYtDlpGlobalArgsAsync(baseArgs) {
+async function appendYtDlpGlobalArgsAsync(baseArgs, options = {}) {
   const out = [...baseArgs];
-  const cookiesFile = ensureYtDlpCookiesFile();
+  const includeCookies = options.includeCookies !== false;
+  const cookiesFile = includeCookies ? ensureYtDlpCookiesFile() : "";
   if (cookiesFile) out.push("--cookies", cookiesFile);
   const proxy = await getEffectiveYtDlpProxy();
   if (proxy) out.push("--proxy", proxy);
   return out;
 }
 
-async function buildYtDlpResolveArgs(url, platformHint = "unknown", youtubeProfile = "default") {
+async function buildYtDlpResolveArgs(url, platformHint = "unknown", youtubeProfile = "default", options = {}) {
   let args = [
     "--dump-single-json",
     "--no-warnings",
@@ -249,12 +250,14 @@ async function buildYtDlpResolveArgs(url, platformHint = "unknown", youtubeProfi
       args.push("--extractor-args", "youtube:player_client=android,ios,mweb");
     } else if (youtubeProfile === "tv") {
       args.push("--extractor-args", "youtube:player_client=tv,web_safari");
+    } else if (youtubeProfile === "tv_embedded") {
+      args.push("--extractor-args", "youtube:player_client=tv_embedded,android");
     } else if (youtubeProfile === "skipweb") {
       args.push("--extractor-args", "youtube:player_skip=webpage,configs;player_client=android,ios");
     }
   }
   args.push(url);
-  args = await appendYtDlpGlobalArgsAsync(args);
+  args = await appendYtDlpGlobalArgsAsync(args, options);
   return args;
 }
 
@@ -2067,33 +2070,40 @@ async function resolveViaYtDlp(url, platformHint = "unknown") {
   if (!ytDlpCommand) return null;
 
   const youtubeProfiles = platformHint === "youtube"
-    ? ["default", "mobile", "tv", "skipweb"]
+    ? ["default", "mobile", "tv", "tv_embedded", "skipweb"]
     : ["default"];
+  const attemptPlans = platformHint === "youtube"
+    ? [
+        { includeCookies: true, label: "with_cookies" },
+        { includeCookies: false, label: "without_cookies" }
+      ]
+    : [{ includeCookies: true, label: "default" }];
   let lastError = null;
 
-  for (const profile of youtubeProfiles) {
-    try {
-      const args = await buildYtDlpResolveArgs(url, platformHint, profile);
-      const { stdout } = await runCommandCapture(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, ...args]);
-      let info = {};
+  for (const plan of attemptPlans) {
+    for (const profile of youtubeProfiles) {
       try {
-        info = JSON.parse(stdout || "{}");
-      } catch {
-        throw createHttpError(502, "yt-dlp tra ve JSON khong hop le.");
-      }
-      const qualities = buildQualitiesFromYtDlpInfo(info);
-      if (!qualities.length) continue;
+        const args = await buildYtDlpResolveArgs(url, platformHint, profile, { includeCookies: plan.includeCookies });
+        const { stdout } = await runCommandCapture(ytDlpCommand.executable, [...ytDlpCommand.prefixArgs, ...args]);
+        const info = pickJsonFromStdout(stdout);
+        if (!info || typeof info !== "object") {
+          throw createHttpError(502, "yt-dlp tra ve JSON khong hop le.");
+        }
+        const qualities = buildQualitiesFromYtDlpInfo(info);
+        if (!qualities.length) continue;
 
-      return normalizeVideoResult({
-        item_id: String(info?.id || extractVideoId(url) || ""),
-        title: String(info?.title || ""),
-        cover_url: String(info?.thumbnail || ""),
-        qualities
-      }, url);
-    } catch (error) {
-      lastError = error;
-      if (platformHint === "youtube") {
-        await sleep(500);
+        return normalizeVideoResult({
+          item_id: String(info?.id || extractVideoId(url) || ""),
+          title: String(info?.title || ""),
+          cover_url: String(info?.thumbnail || ""),
+          qualities
+        }, url);
+      } catch (error) {
+        lastError = error;
+        if (platformHint === "youtube") {
+          console.warn(`[youtube] yt-dlp fallback failed profile=${profile} mode=${plan.label}: ${error?.message || error}`);
+          await sleep(500);
+        }
       }
     }
   }
