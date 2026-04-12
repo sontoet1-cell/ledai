@@ -46,6 +46,8 @@ const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -504,7 +506,13 @@ function detectPlatform(value) {
 }
 
 function isSupportedUrl(value) {
-  return detectPlatform(value) !== "unknown";
+  const platform = detectPlatform(value);
+  return platform !== "unknown" && platform !== "youtube";
+}
+
+function isLikelyDirectFacebookVideoUrl(value) {
+  const raw = String(value || "");
+  return /facebook\.com\/(?:watch\/?\?v=|reel\/|videos\/)/i.test(raw) || /fb\.watch\//i.test(raw);
 }
 
 function isFacebookHost(host) {
@@ -2248,6 +2256,19 @@ async function resolveFacebookVideo(url) {
     const redirect = await resolveRedirectInfo(url);
     const probes = buildProbeUrls(redirect.location);
 
+    if (isLikelyDirectFacebookVideoUrl(redirect.location || url)) {
+      try {
+        const ytdlpPrimary = await resolveViaYtDlp(redirect.location || url, "facebook");
+        if (ytdlpPrimary?.qualities?.length) {
+          const finalResult = { ...ytdlpPrimary, resolver: "yt_dlp_fastpath" };
+          putCachedResolve(url, finalResult);
+          return finalResult;
+        }
+      } catch {
+        // Fall back to HTML probing below.
+      }
+    }
+
     const isShareLink = /\/share\/r\//i.test(redirect.location) || /\/share\/v\//i.test(redirect.location);
     if (isShareLink) {
       try {
@@ -2320,6 +2341,10 @@ async function resolveVideoByPlatform(url) {
 
   if (platform === "unknown") {
     throw createHttpError(400, "Link khong thuoc nen tang duoc ho tro.");
+  }
+
+  if (platform === "youtube") {
+    throw createHttpError(503, "YouTube tam thoi da tat tren may chu nay.");
   }
 
   if (platform === "facebook") {
@@ -2811,7 +2836,7 @@ const server = http.createServer(async (req, res) => {
       if (!url) return sendJson(res, 400, { error: "Vui long nhap link video." });
       if (!isSupportedUrl(url)) {
         return sendJson(res, 400, {
-          error: "Link khong duoc ho tro. Ho tro: Facebook, TikTok, Jimeng, Douyin, YouTube."
+          error: "Link khong duoc ho tro. Ho tro: Facebook, TikTok, Jimeng, Douyin."
         });
       }
 

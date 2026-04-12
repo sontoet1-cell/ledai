@@ -4,7 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="no-referrer" />
-  <title>Tienich.pro - Hệ Sinh Thái Tải Video Đa Nền Tảng & AI Tools</title>
+  <title>Tải Video Facebook, TikTok, Jimeng, Douyin Không Watermark | Tienich.pro</title>
+  <meta name="description" content="Tải video Facebook, TikTok, Jimeng và Douyin nhanh trên Tienich.pro. Hỗ trợ chọn chất lượng cao, tải video không watermark khi nguồn hỗ trợ, kèm công cụ Facebook ID và 2FA online." />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <link rel="canonical" href="https://www.tienich.pro/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="vi_VN" />
+  <meta property="og:site_name" content="Tienich.pro" />
+  <meta property="og:title" content="Tải Video Facebook, TikTok, Jimeng, Douyin Không Watermark | Tienich.pro" />
+  <meta property="og:description" content="Công cụ tải video đa nền tảng cho Facebook, TikTok, Jimeng và Douyin. Chọn chất lượng cao, tải nhanh, giao diện đơn giản trên mobile và desktop." />
+  <meta property="og:url" content="https://www.tienich.pro/" />
+  <meta property="og:image" content="https://www.tienich.pro/og-cover.svg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Tải Video Facebook, TikTok, Jimeng, Douyin Không Watermark | Tienich.pro" />
+  <meta name="twitter:description" content="Tải video Facebook, TikTok, Jimeng và Douyin với chất lượng cao trên Tienich.pro." />
+  <meta name="twitter:image" content="https://www.tienich.pro/og-cover.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -133,7 +147,74 @@
       color: #fff;
       box-shadow: 0 6px 16px rgba(15, 23, 42, 0.35);
     }
+    .content-card {
+      background: rgba(9, 11, 18, 0.68);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      padding: 24px;
+    }
+    .content-card h2 {
+      font-size: 1.5rem;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .content-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 8px;
+    }
+    .content-card p,
+    .content-card li {
+      color: #94a3b8;
+      line-height: 1.8;
+    }
   </style>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://www.tienich.pro/#website",
+          "url": "https://www.tienich.pro/",
+          "name": "Tienich.pro",
+          "inLanguage": "vi",
+          "description": "Công cụ tải video Facebook, TikTok, Jimeng và Douyin cùng các tiện ích online khác."
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://www.tienich.pro/#organization",
+          "name": "Tienich.pro",
+          "url": "https://www.tienich.pro/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://www.tienich.pro/og-cover.svg"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Tienich.pro Video Downloader",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "Web",
+          "url": "https://www.tienich.pro/",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "VND"
+          },
+          "featureList": [
+            "Tải video Facebook",
+            "Tải video TikTok",
+            "Tải video Jimeng",
+            "Tải video Douyin",
+            "Tra cứu Facebook ID",
+            "Tạo mã 2FA trực tiếp"
+          ]
+        }
+      ]
+    }
+  </script>
 </head>
 <body class="mystic-bg min-h-screen flex flex-col">
   <header class="w-full max-w-7xl mx-auto px-4 py-6 relative z-10">
@@ -153,7 +234,7 @@
       Tải Video <span class="text-gradient-mystic">Đa Nền Tảng</span>
     </h1>
     <p class="text-slate-400 text-sm md:text-base text-center max-w-2xl leading-relaxed mb-8">
-      Hỗ trợ tải all từ Facebook, TikTok, Jimeng, Douyin, YouTube. Tự động chọn chất lượng cao nhất và tải nhanh.
+      Hỗ trợ tải từ Facebook, TikTok, Jimeng và Douyin. Tự động chọn chất lượng cao nhất và tải nhanh.
     </p>
 
     <section class="w-full max-w-4xl glass-card rounded-3xl p-5 md:p-6 mb-8">
@@ -162,7 +243,7 @@
           <div class="flex-1 flex items-center bg-black rounded-2xl border border-white/10 px-4">
             <i class="fas fa-link text-slate-500"></i>
             <input id="url" name="url" type="text" autocomplete="off" required
-              placeholder="Dán link Facebook / TikTok / Jimeng / Douyin / YouTube..."
+              placeholder="Dán link Facebook / TikTok / Jimeng / Douyin..."
               class="w-full bg-transparent px-3 py-4 text-sm text-white placeholder:text-slate-500 outline-none" />
             <button type="button" class="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300 text-xs font-semibold hover:bg-violet-500/30 transition"
               onclick="navigator.clipboard.readText().then(text => document.getElementById('url').value = text)">
@@ -201,6 +282,61 @@
       </article>
     </section>
 
+    <section class="w-full max-w-5xl grid lg:grid-cols-2 gap-4 mb-8">
+      <article class="content-card">
+        <h2 class="text-white font-bold">Tải video đa nền tảng theo đúng mục đích tìm kiếm</h2>
+        <p>
+          Trang này được tối ưu cho nhu cầu tải video Facebook, tải video TikTok, tải video Jimeng và tải video Douyin.
+          Người dùng chỉ cần dán link video công khai, hệ thống sẽ tự phân tích nguồn và hiển thị các mức chất lượng phù hợp.
+        </p>
+      </article>
+      <article class="content-card">
+        <h2 class="text-white font-bold">Nền tảng đang hỗ trợ</h2>
+        <ul class="space-y-2 list-disc pl-5 marker:text-violet-400">
+          <li>Facebook video, watch, reel và một số dạng share link công khai.</li>
+          <li>TikTok video và short link `vm.tiktok.com` hoặc `vt.tiktok.com`.</li>
+          <li>Jimeng AI và Douyin cho các link chia sẻ còn hiệu lực.</li>
+          <li>Facebook ID lookup và công cụ tạo mã 2FA trực tiếp ngay trên trình duyệt.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="w-full max-w-5xl content-card mb-8">
+      <h2 class="text-white font-bold">Cách dùng công cụ tải video</h2>
+      <div class="grid md:grid-cols-3 gap-4 mt-4">
+        <div>
+          <h3>Dán link video</h3>
+          <p>Dán link Facebook, TikTok, Jimeng hoặc Douyin vào ô nhập ở đầu trang. Hệ thống sẽ tự chuẩn hóa link trước khi phân tích.</p>
+        </div>
+        <div>
+          <h3>Chọn chất lượng</h3>
+          <p>Sau khi resolve thành công, trang sẽ hiển thị ảnh thumbnail, tên video, nút tải bản tốt nhất và các chất lượng khả dụng.</p>
+        </div>
+        <div>
+          <h3>Tải hoặc xử lý HD</h3>
+          <p>Nếu nguồn đã có tiếng và có file gốc, bạn tải trực tiếp. Nếu nguồn tách audio/video, hệ thống sẽ xử lý và ghép file trước khi tải.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="w-full max-w-5xl content-card mb-10">
+      <h2 class="text-white font-bold">Câu hỏi thường gặp</h2>
+      <div class="space-y-4 mt-4">
+        <div>
+          <h3>Vì sao một số link Facebook xử lý chậm?</h3>
+          <p>Một số link share hoặc reel cần qua bước redirect, đọc HTML hoặc fallback sang trình phân tích khác trước khi lấy được file video thực tế.</p>
+        </div>
+        <div>
+          <h3>Khi nào Jimeng hoặc Douyin không tải được?</h3>
+          <p>Những link đã hết hạn, video riêng tư hoặc upstream thay đổi gateway có thể làm việc resolve thất bại trong một khoảng thời gian.</p>
+        </div>
+        <div>
+          <h3>Có phải mọi video đều không watermark?</h3>
+          <p>Không. Điều này phụ thuộc vào nguồn trả về của từng nền tảng. Công cụ sẽ ưu tiên bản tốt nhất mà server lấy được tại thời điểm xử lý.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="w-full max-w-6xl pt-6 border-t border-white/10">
       <h3 class="text-center text-3xl font-extrabold text-white mb-8 tracking-tight uppercase">TIỆN ÍCH MỞ RỘNG</h3>
       <div class="flex flex-wrap justify-center gap-4">
@@ -223,11 +359,82 @@
       </div>
 
       <div class="grid md:grid-cols-2 gap-4 mt-6">
-        <div class="ext-card p-4 md:col-span-2 max-w-3xl mx-auto w-full">
+        <div class="ext-card p-5">
           <div class="flex items-center gap-3 mb-4">
-            <i class="fas fa-bolt text-red-400 text-xl"></i>
-            <h4 class="text-white font-bold text-lg">Công Cụ Tính Tiền Điện Online</h4>
+            <i class="fas fa-id-card text-blue-400 text-xl"></i>
+            <h4 class="text-white font-bold text-lg">Truy Vấn Facebook ID</h4>
           </div>
+          <form id="fbid-form" class="space-y-3">
+            <input
+              id="fbid-input"
+              type="text"
+              placeholder="Dán link profile Facebook..."
+              class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
+            />
+            <button
+              id="fbid-btn"
+              type="submit"
+              class="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:opacity-90 transition"
+            >
+              Lấy Facebook ID
+            </button>
+          </form>
+          <p id="fbid-result" class="mt-3 text-sm text-slate-300 min-h-[20px]"></p>
+          <button
+            id="fbid-copy"
+            type="button"
+            class="hidden w-full h-11 mt-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold hover:opacity-90 transition"
+          >
+            Copy Facebook ID
+          </button>
+        </div>
+
+        <div class="ext-card p-5">
+          <div class="flex items-center gap-3 mb-4">
+            <i class="fas fa-shield-halved text-yellow-400 text-xl"></i>
+            <h4 class="text-white font-bold text-lg">Mã 2FA Trực Tiếp</h4>
+          </div>
+          <div class="space-y-3">
+            <input
+              id="totp-secret"
+              type="text"
+              placeholder="Nhập secret key Google Authenticator (Base32)..."
+              class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
+            />
+            <div class="flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3">
+              <div>
+                <p class="text-slate-400 text-xs">Mã hiện tại</p>
+                <p id="totp-code" class="text-2xl font-extrabold tracking-[0.2em] text-green-400">------</p>
+              </div>
+              <div class="text-right">
+                <p class="text-slate-400 text-xs">Làm mới sau</p>
+                <p id="totp-timer" class="text-lg font-bold text-white">--s</p>
+              </div>
+            </div>
+            <button
+              id="totp-copy"
+              type="button"
+              class="w-full h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold hover:opacity-90 transition"
+            >
+              Copy Mã 2FA
+            </button>
+            <p id="totp-status" class="text-sm text-slate-300 min-h-[20px]"></p>
+          </div>
+        </div>
+      </div>
+
+      <details class="ext-card mt-6 max-w-3xl mx-auto w-full group">
+        <summary class="list-none cursor-pointer p-4 md:p-5 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-bolt text-red-400 text-xl"></i>
+            <div>
+              <h4 class="text-white font-bold text-lg">Công Cụ Tính Tiền Điện Online</h4>
+              <p class="text-slate-400 text-sm">Bấm để mở công cụ tính tiền điện.</p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-down text-slate-400 transition-transform duration-200 group-open:rotate-180"></i>
+        </summary>
+        <div class="px-4 md:px-5 pb-5">
           <form id="electricity-form" class="space-y-4">
             <div class="flex flex-col md:flex-row gap-3">
               <input
@@ -300,70 +507,7 @@
             </p>
           </div>
         </div>
-
-        <div class="ext-card p-5">
-          <div class="flex items-center gap-3 mb-4">
-            <i class="fas fa-id-card text-blue-400 text-xl"></i>
-            <h4 class="text-white font-bold text-lg">Truy Vấn Facebook ID</h4>
-          </div>
-          <form id="fbid-form" class="space-y-3">
-            <input
-              id="fbid-input"
-              type="text"
-              placeholder="Dán link profile Facebook..."
-              class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
-            />
-            <button
-              id="fbid-btn"
-              type="submit"
-              class="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:opacity-90 transition"
-            >
-              Lấy Facebook ID
-            </button>
-          </form>
-          <p id="fbid-result" class="mt-3 text-sm text-slate-300 min-h-[20px]"></p>
-          <button
-            id="fbid-copy"
-            type="button"
-            class="hidden w-full h-11 mt-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold hover:opacity-90 transition"
-          >
-            Copy Facebook ID
-          </button>
-        </div>
-
-        <div class="ext-card p-5">
-          <div class="flex items-center gap-3 mb-4">
-            <i class="fas fa-shield-halved text-yellow-400 text-xl"></i>
-            <h4 class="text-white font-bold text-lg">Mã 2FA Trực Tiếp</h4>
-          </div>
-          <div class="space-y-3">
-            <input
-              id="totp-secret"
-              type="text"
-              placeholder="Nhập secret key Google Authenticator (Base32)..."
-              class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
-            />
-            <div class="flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3">
-              <div>
-                <p class="text-slate-400 text-xs">Mã hiện tại</p>
-                <p id="totp-code" class="text-2xl font-extrabold tracking-[0.2em] text-green-400">------</p>
-              </div>
-              <div class="text-right">
-                <p class="text-slate-400 text-xs">Làm mới sau</p>
-                <p id="totp-timer" class="text-lg font-bold text-white">--s</p>
-              </div>
-            </div>
-            <button
-              id="totp-copy"
-              type="button"
-              class="w-full h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold hover:opacity-90 transition"
-            >
-              Copy Mã 2FA
-            </button>
-            <p id="totp-status" class="text-sm text-slate-300 min-h-[20px]"></p>
-          </div>
-        </div>
-      </div>
+      </details>
     </section>
   </main>
 
@@ -377,7 +521,6 @@
         <div class="flex justify-center gap-3">
           <a class="social-btn" href="#"><i class="fab fa-facebook-f"></i></a>
           <a class="social-btn" href="#"><i class="fab fa-tiktok"></i></a>
-          <a class="social-btn" href="#"><i class="fab fa-youtube"></i></a>
         </div>
         <div class="flex justify-center md:justify-end gap-6 text-slate-400">
           <button type="button" onclick="showModal('contact')" class="hover:text-white">Liên hệ</button>
