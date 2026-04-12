@@ -211,6 +211,7 @@ async function fetchProxyFromProxyXoay() {
 async function getEffectiveYtDlpProxy(options = {}) {
   const useProxy = options.useProxy === true;
   if (!useProxy) return "";
+  if (YTDLP_PROXY) return YTDLP_PROXY;
   if (PROXYXOAY_KEY) {
     if (rotatingProxyCache.proxyUrl && Date.now() < rotatingProxyCache.expiresAt) {
       return rotatingProxyCache.proxyUrl;
@@ -3100,7 +3101,7 @@ server.listen(PORT, () => {
   }
   console.log(`[boot] yt-dlp=${ytDlpCommand ? `${ytDlpCommand.executable}${ytDlpCommand.mode === "python_module" ? " (python -m yt_dlp)" : ""}` : "(not found)"}`);
   console.log(`[boot] yt-dlp-version=${getYtDlpVersionText()}`);
-  console.log(`[boot] yt-dlp-proxy=${PROXYXOAY_KEY ? "proxyxoay" : (YTDLP_PROXY ? "static" : "off")}`);
+  console.log(`[boot] yt-dlp-proxy=${YTDLP_PROXY ? "static" : (PROXYXOAY_KEY ? "proxyxoay" : "off")}`);
   console.log(`[boot] yt-dlp-cookies=${ensureYtDlpCookiesFile() ? "on" : "off"}`);
   console.log(`[boot] tikwm=${TIKWM_API_BASE}`);
   console.log(`Server running at http://localhost:${PORT}`);
