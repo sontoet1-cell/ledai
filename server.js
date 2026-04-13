@@ -2556,6 +2556,43 @@ async function resolveVideoByPlatform(url) {
     throw createHttpError(500, "Khong lay duoc du lieu Jimeng tu sora2dl.");
   }
 
+  if (platform === "douyin") {
+    const redirect = await resolveRedirectInfo(normalizedForResolver);
+    const probes = [...new Set([normalizedForResolver, redirect.location || normalizedForResolver].filter(Boolean))];
+
+    for (const probe of probes) {
+      try {
+        const soraDouyin = await resolveViaSora(probe, platform);
+        if (soraDouyin?.qualities?.length) {
+          return postProcessByPlatform({
+            ...soraDouyin,
+            source_page_url: probe,
+            resolver: "sora2dl_douyin",
+            platform
+          }, platform);
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    for (const probe of probes) {
+      try {
+        const ytdlpDouyin = await resolveViaYtDlp(probe, platform);
+        if (ytdlpDouyin?.qualities?.length) {
+          return postProcessByPlatform({
+            ...ytdlpDouyin,
+            source_page_url: probe,
+            resolver: "yt_dlp",
+            platform
+          }, platform);
+        }
+      } catch (error) {
+        lastError = normalizeProcessError(error, "Khong the doc nguon video Douyin.");
+      }
+    }
+  }
+
   try {
     const ytdlp = await resolveViaYtDlp(normalizedForResolver, platform);
     if (ytdlp?.qualities?.length) {
@@ -3231,5 +3268,6 @@ server.listen(PORT, () => {
   console.log(`[boot] tikwm=${TIKWM_API_BASE}`);
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
 
 
