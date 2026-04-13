@@ -1312,7 +1312,10 @@ function normalizeVideoResult(raw, sourceUrl) {
       unknownHeight.push(item);
       continue;
     }
-    if (!bestByHeight.has(h)) bestByHeight.set(h, item);
+    const existing = bestByHeight.get(h);
+    if (!existing || scoreQuality(item) > scoreQuality(existing)) {
+      bestByHeight.set(h, item);
+    }
   }
   candidates = [...bestByHeight.entries()]
     .sort((a, b) => b[0] - a[0])
