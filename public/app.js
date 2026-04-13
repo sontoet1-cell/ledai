@@ -144,14 +144,20 @@ function isYouTubeUrl(value) {
 function detectQuality(item, fallbackIndex) {
   const candidates = [item?.quality, item?.label, item?.url, ""];
   for (const source of candidates) {
-    const hit = String(source).match(/(2160|1440|1080|720|540|480|360|240)p/i);
+    const normalized = String(source || "").toLowerCase();
+    if (normalized.includes("origin") || normalized.includes("original") || normalized.includes("raw") || normalized.includes("best")) {
+      return "Origin";
+    }
+    const hit = normalized.match(/(2160|1440|1080|720|540|480|360|240)p/i);
     if (hit) return `${hit[1]}p`;
   }
+  if (Number(item?.height) >= 9000) return "Origin";
   if (Number(item?.height) > 0) return `${item.height}p`;
   return `Q${fallbackIndex + 1}`;
 }
 
 function qualityClassByQuality(quality) {
+  if (quality === "Origin") return "background:#7c3aed;border-color:#c4b5fd";
   if (quality === "1440p") return "background:#5b21b6;border-color:#a78bfa";
   if (quality === "1080p") return "background:#047857;border-color:#34d399";
   if (quality === "720p") return "background:#1d4ed8;border-color:#60a5fa";

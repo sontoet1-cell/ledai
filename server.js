@@ -901,7 +901,17 @@ function detectQualityNumber(input) {
   return 0;
 }
 
+function isOriginalQualityMarker(input) {
+  const value = String(input || "").toLowerCase();
+  return value.includes("origin")
+    || value.includes("original")
+    || value.includes("raw")
+    || value.includes("source")
+    || value.includes("best");
+}
+
 function qualityHeightOf(item) {
+  if (isOriginalQualityMarker(item?.quality) || isOriginalQualityMarker(item?.label)) return 10000;
   return Number(item?.height)
     || detectQualityNumber(item?.quality)
     || detectQualityNumber(item?.label)
@@ -914,6 +924,7 @@ function scoreQuality(item) {
 
   let score = q * 4;
   if (q >= 720) score += 1200;
+  if (isOriginalQualityMarker(item?.quality) || isOriginalQualityMarker(item?.label)) score += 20000;
 
   if (text.includes("hd")) score += 80;
   if (text.includes("sd")) score -= 30;
@@ -1256,7 +1267,7 @@ function extractMimeTypedUrls(html) {
 }
 
 function pickPreferredQuality(list) {
-  return list;
+  return [...list].sort((a, b) => scoreQuality(b) - scoreQuality(a));
 }
 
 function normalizeVideoResult(raw, sourceUrl) {
