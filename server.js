@@ -903,6 +903,7 @@ function detectQualityNumber(input) {
 
 function isOriginalQualityMarker(input) {
   const value = String(input || "").toLowerCase();
+  if (value.includes("origin_std") || value.includes("standard")) return false;
   return value.includes("origin")
     || value.includes("original")
     || value.includes("raw")
