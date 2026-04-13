@@ -1313,7 +1313,20 @@ function normalizeVideoResult(raw, sourceUrl) {
       continue;
     }
     const existing = bestByHeight.get(h);
-    if (!existing || scoreQuality(item) > scoreQuality(existing)) {
+    const itemIsOrigin = isOriginalQualityMarker(item?.quality) || isOriginalQualityMarker(item?.label);
+    const existingIsOrigin = isOriginalQualityMarker(existing?.quality) || isOriginalQualityMarker(existing?.label);
+    if (!existing) {
+      bestByHeight.set(h, item);
+      continue;
+    }
+    if (itemIsOrigin && !existingIsOrigin) {
+      bestByHeight.set(h, item);
+      continue;
+    }
+    if (existingIsOrigin && !itemIsOrigin) {
+      continue;
+    }
+    if (scoreQuality(item) > scoreQuality(existing)) {
       bestByHeight.set(h, item);
     }
   }
