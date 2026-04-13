@@ -1879,6 +1879,17 @@ function normalizeJimengSoraPayload(payload) {
   };
 }
 
+function summarizeQualityDebug(items) {
+  return (Array.isArray(items) ? items : []).slice(0, 8).map((item, index) => ({
+    i: index,
+    label: String(item?.label || ""),
+    quality: String(item?.quality || ""),
+    height: Number(item?.height) || 0,
+    has_audio: Boolean(item?.has_audio),
+    url: String(item?.url || "").slice(0, 180)
+  }));
+}
+
 function parseSoraTextPayload(text) {
   const matches = String(text || "").match(/https?:\/\/[^\s"'<>]+/g) || [];
   const videoUrls = [...new Set(matches.map((m) => normalizeVideoUrl(m)).filter((u) => u && /\.mp4(\?|$)/i.test(u)))];
@@ -1927,11 +1938,26 @@ async function resolveViaSora(url, platform = "unknown") {
     }
 
     const json = await response.json().catch(() => null);
+    console.log("[jimeng] gateway keys", json && typeof json === "object" ? Object.keys(json).slice(0, 30) : []);
+    console.log("[jimeng] gateway top-level", {
+      origin: Boolean(json?.origin),
+      original: Boolean(json?.original),
+      raw: Boolean(json?.raw),
+      best: Boolean(json?.best),
+      url: Boolean(json?.url),
+      video_url: Boolean(json?.video_url),
+      download_url: Boolean(json?.download_url),
+      qualities: Array.isArray(json?.qualities) ? json.qualities.length : 0,
+      data: Array.isArray(json?.data) ? json.data.length : 0
+    });
     const normalized = normalizeJimengSoraPayload(json);
     if (!normalized) {
       throw createHttpError(502, json?.error || "Jimeng gateway khong tra du lieu hop le.");
     }
-    return normalizeVideoResult(normalized, url);
+    console.log("[jimeng] normalized raw qualities", summarizeQualityDebug(normalized.qualities));
+    const finalNormalized = normalizeVideoResult(normalized, url);
+    console.log("[jimeng] final qualities", summarizeQualityDebug(finalNormalized.qualities));
+    return finalNormalized;
   }
 
   const endpoint = `https://sora2dl.com/downloadi.php?url=${encodeURIComponent(url)}`;
