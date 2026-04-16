@@ -3144,7 +3144,10 @@ async function registerMergedGiongNoiBundle(partUrls, filename) {
 
 function isAllowedZaloAudioHostname(hostname) {
   const host = String(hostname || "").toLowerCase();
-  return host.endsWith(".tts.zalo.ai") || host === "tts.zalo.ai";
+  return host.endsWith(".tts.zalo.ai")
+    || host === "tts.zalo.ai"
+    || host.endsWith(".zdn.vn")
+    || host === "zdn.vn";
 }
 
 async function runFfmpegDownloadAudio(sourceUrl, outputPath, format = "mp3") {
@@ -3156,8 +3159,10 @@ async function runFfmpegDownloadAudio(sourceUrl, outputPath, format = "mp3") {
   await new Promise((resolve, reject) => {
     const args = [
       "-y",
-      "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
+      "-protocol_whitelist", "file,http,https,tcp,tls,crypto,httpproxy",
       "-allowed_extensions", "ALL",
+      "-allowed_segment_extensions", "ALL",
+      "-extension_picky", "0",
       "-headers", "Referer: https://ai.zalo.solutions/\r\nUser-Agent: Mozilla/5.0\r\n",
       "-i", sourceUrl
     ];

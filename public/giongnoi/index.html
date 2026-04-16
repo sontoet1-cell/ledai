@@ -3,139 +3,67 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Trinh Chuyen Doi Van Ban Thanh Giong Noi</title>
+  <title>Tai Audio M3U8 Zalo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/giongnoi/styles.css">
 </head>
 <body>
-  <main class="shell">
+  <main class="page">
     <section class="card">
       <div class="intro">
-        <h1>
-          Trình Chuyển Đổi<br>
-          Văn Bản<br>
-          <span>Thành Giọng Nói</span>
-        </h1>
+        <p class="eyebrow">Zalo M3U8 Downloader</p>
+        <h1>Dán link `.m3u8` rồi tải audio về máy</h1>
         <p class="intro-copy">
-          Nhập văn bản của bạn, chọn một giọng nói tự nhiên và lắng nghe nội dung
-          của bạn được chuyển đổi thành âm thanh chất lượng cao ngay lập tức.
+          Trang này chỉ làm một việc: nhận link audio `.m3u8` từ Zalo hoặc Zalo Storage,
+          dùng server xử lý và trả về file tải xuống.
         </p>
-
-        <ul class="feature-list">
-          <li>Nhiều lựa chọn giọng nói</li>
-          <li>Tùy chỉnh tốc độ giọng nói</li>
-          <li>Tải xuống WAV</li>
+        <ul class="tips">
+          <li>Chỉ cần dán playlist `.m3u8`, không cần segment nhỏ.</li>
+          <li>Link phải còn hạn `expires/authen`.</li>
+          <li>Hỗ trợ `mp3`, `wav`, `aac`.</li>
         </ul>
+        <p class="credit">Phát triển bởi Lê Đại</p>
       </div>
 
-      <div class="workspace">
-        <form id="tts-form" class="form-panel">
-          <label class="label" for="input">Văn bản hoặc kịch bản của bạn:</label>
-          <div class="textarea-wrap">
-            <textarea
-              id="input"
-              name="input"
-              rows="8"
-              maxlength="10000"
-              placeholder="Nhập văn bản hoặc kịch bản của bạn tại đây..."
-              required
-            >Xin chào, đây là trang demo Zalo AI Text to Audio được phát triển bởi Lê Đại.</textarea>
-            <span class="char-indicator"><span id="char-count">0</span> / 10.000</span>
-          </div>
+      <form id="m3u8-form" class="panel">
+        <label class="label" for="m3u8-url">Link `.m3u8`</label>
+        <textarea
+          id="m3u8-url"
+          rows="8"
+          placeholder="https://s9-zstorage.zdn.vn/...m3u8?authen=..."
+          required
+        ></textarea>
 
-          <label class="label" for="speaker_id">Chọn giọng nói:</label>
-          <select id="speaker_id" name="speaker_id" class="control">
-            <option value="1">Nam miền Bắc</option>
-            <option value="2">Nam miền Nam</option>
-            <option value="3">Nữ miền Bắc</option>
-            <option value="4">Nữ miền Nam</option>
-            <option value="5" selected>Nữ miền Bắc 2</option>
-            <option value="6">Nữ miền Nam 2</option>
-          </select>
+        <div class="grid">
+          <label class="field">
+            <span>Định dạng tải</span>
+            <select id="m3u8-format">
+              <option value="mp3" selected>MP3</option>
+              <option value="wav">WAV</option>
+              <option value="aac">AAC</option>
+            </select>
+          </label>
 
-          <div class="slider-panel">
-            <div class="slider-head">
-              <span>Tốc độ giọng nói: <strong id="speed-value">1.0x</strong></span>
-            </div>
-            <input id="speed" name="speed" type="range" min="0.8" max="1.2" step="0.1" value="1">
-            <div class="speed-ticks">
-              <span>0.8</span>
-              <span>0.9</span>
-              <span>1.0</span>
-              <span>1.1</span>
-              <span>1.2</span>
-            </div>
-          </div>
+          <label class="field">
+            <span>Tên file</span>
+            <input id="m3u8-filename" type="text" value="zalo-audio-link">
+          </label>
+        </div>
 
-          <input id="filename" name="filename" type="hidden" value="giongnoi-zalo-demo">
-          <button id="submit-btn" type="submit" class="primary-btn">Tạo âm thanh</button>
-          <p id="status" class="status">Sẵn sàng.</p>
-        </form>
+        <div class="actions">
+          <button id="m3u8-submit" type="submit">Tải từ link</button>
+          <a id="m3u8-download-link" class="download-link disabled" href="#" download>Tải file đã xử lý</a>
+        </div>
 
-        <form id="m3u8-form" class="form-panel alt-panel">
-          <label class="label" for="m3u8-url">Dán link audio `.m3u8` của Zalo:</label>
-          <div class="textarea-wrap textarea-wrap-small">
-            <textarea
-              id="m3u8-url"
-              name="m3u8-url"
-              rows="4"
-              placeholder="https://audiostream-v3.tts.zalo.ai/secure/m3u8/....m3u8?expires=..."
-            ></textarea>
-          </div>
+        <div id="m3u8-result" class="result is-empty">
+          Chưa có file nào được tạo.
+        </div>
 
-          <div class="inline-grid">
-            <div>
-              <label class="label" for="m3u8-format">Định dạng tải:</label>
-              <select id="m3u8-format" class="control">
-                <option value="mp3" selected>MP3</option>
-                <option value="wav">WAV</option>
-                <option value="aac">AAC</option>
-              </select>
-            </div>
-            <div>
-              <label class="label" for="m3u8-filename">Tên file:</label>
-              <input id="m3u8-filename" class="control input-control" type="text" value="zalo-audio-link">
-            </div>
-          </div>
-
-          <div class="action-row">
-            <button id="m3u8-submit" type="submit" class="primary-btn">Tải từ link</button>
-            <a id="m3u8-download-link" class="action-link action-link-secondary disabled" href="#" download>Tải file đã xử lý</a>
-          </div>
-          <p id="m3u8-status" class="status">Dùng khi bạn đã có link `.m3u8` từ trang Zalo.</p>
-        </form>
-
-        <section class="result-panel">
-          <div class="result-box">
-            <p class="result-label">Kết quả âm thanh</p>
-            <audio id="player" controls preload="none"></audio>
-          </div>
-
-          <div id="result-meta" class="result-meta is-empty">
-            Chưa có âm thanh. Nhấn <strong>Tạo âm thanh</strong> để bắt đầu.
-          </div>
-
-          <div class="action-row">
-            <a id="listen-link" class="action-link action-link-primary disabled" href="#" target="_blank" rel="noopener noreferrer">Nghe ngay</a>
-            <a id="download-link" class="action-link action-link-secondary disabled" href="#" download>Tải xuống</a>
-            <a id="merged-link" class="action-link action-link-secondary disabled" href="#" download>Tải bản ghép</a>
-            <button id="reset-btn" type="button" class="secondary-btn">Đặt lại</button>
-          </div>
-
-          <section id="parts-panel" class="parts-panel is-empty">
-            <div class="parts-head">
-              <p class="result-label">Danh sách audio từng phần</p>
-              <span id="parts-count" class="parts-count">0 phần</span>
-            </div>
-            <div id="parts-list" class="parts-list"></div>
-          </section>
-        </section>
-      </div>
+        <p id="m3u8-status" class="status">Dán link `.m3u8` rồi bấm tải.</p>
+      </form>
     </section>
-
-    <p class="credit">Phát triển bởi Lê Đại</p>
   </main>
 
   <script src="/giongnoi/app.js" defer></script>
