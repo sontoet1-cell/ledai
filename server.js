@@ -3496,6 +3496,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && req.url.startsWith("/api/giongnoi/from-link?")) {
+    try {
+      const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+      const parsed = new URL(req.url, base);
+      const result = await createGiongNoiFileFromM3u8(
+        parsed.searchParams.get("url") || "",
+        parsed.searchParams.get("format") || "mp3",
+        parsed.searchParams.get("filename") || "zalo-audio"
+      );
+      sendJson(res, 200, {
+        ok: true,
+        filename: result.filename,
+        file_path: result.file_path,
+        format: result.ext,
+        expires_in_ms: result.expires_in_ms
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode) || 500;
+      sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
+        error: error?.message || "Khong the tai audio tu link nay."
+      });
+    }
+    return;
+  }
+
   if (req.method === "GET" && req.url.startsWith("/api/status/")) {
     const base = `http://${req.headers.host || `localhost:${PORT}`}`;
     const parsed = new URL(req.url, base);

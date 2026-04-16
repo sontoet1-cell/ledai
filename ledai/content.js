@@ -145,24 +145,14 @@
     downloadButton.classList.add("disabled");
     setStatus("Đang gửi link sang backend để xử lý MP3...");
     try {
-      const downloaderUrl = await getDownloaderUrl();
-      const endpoint = new URL("/api/giongnoi/from-link", downloaderUrl).toString();
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          url: latestUrl,
-          format: "mp3",
-          filename: "zalo-audio-link"
-        })
+      const result = await chrome.runtime.sendMessage({
+        type: "ledai-download-mp3",
+        url: latestUrl
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || "Backend khong tai duoc audio.");
+      if (!result?.ok || !result?.fileUrl) {
+        throw new Error(result?.error || "Failed to fetch");
       }
-      const fileUrl = new URL(data.file_path, downloaderUrl).toString();
+      const fileUrl = result.fileUrl;
       window.open(fileUrl, "_blank", "noopener,noreferrer");
       setStatus("Đã tạo file MP3. Trình duyệt đang mở link tải.", "success");
     } catch (error) {
