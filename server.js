@@ -36,6 +36,7 @@ const ffmpegExecutable = findFfmpegExecutable();
 const ytDlpCommand = findYtDlpCommand();
 const processJobs = new Map();
 const reclipJobs = new Map();
+const giongNoiBundles = new Map();
 
 try {
   fs.mkdirSync(RUNTIME_TEMP_DIR, { recursive: true });
@@ -57,7 +58,9 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
   ".webp": "image/webp",
-  ".mp4": "video/mp4"
+  ".mp4": "video/mp4",
+  ".wav": "audio/wav",
+  ".mp3": "audio/mpeg"
 };
 
 const DEFAULT_HEADERS = {
@@ -2996,6 +2999,145 @@ function sanitizeAudioFilename(input, fallbackBase = "zalo-tts", fallbackExt = "
   return `${base}.${ext}`;
 }
 
+function sanitizeAudioBaseName(input, fallbackBase = "zalo-tts") {
+  const raw = String(input || "").trim();
+  const cleaned = raw.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").replace(/\s+/g, "-").slice(0, 96);
+  return cleaned || `${fallbackBase}-${Date.now()}`;
+}
+
+function splitLongTextForZaloTts(input, maxLength = 2000) {
+  const normalized = normalizeGiongNoiText(input);
+  if (!normalized) return [];
+  if (normalized.length <= maxLength) return [normalized];
+
+  const paragraphs = normalized
+    .split(/\n+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const chunks = [];
+  for (const paragraph of paragraphs) {
+    if (paragraph.length <= maxLength) {
+      chunks.push(...splitParagraphForZaloTts(paragraph, maxLength));
+      continue;
+    }
+    chunks.push(...splitParagraphForZaloTts(paragraph, maxLength));
+  }
+
+  if (!chunks.length) return [normalized.slice(0, maxLength)];
+  return chunks;
+}
+
+function splitParagraphForZaloTts(text, maxLength) {
+  const sentences = text.split(/(?<=[.!?…])\s+/).filter(Boolean);
+  if (sentences.length <= 1) return splitHardByWord(text, maxLength);
+
+  const out = [];
+  let current = "";
+  for (const sentence of sentences) {
+    const candidate = current ? `${current} ${sentence}` : sentence;
+    if (candidate.length <= maxLength) {
+      current = candidate;
+      continue;
+    }
+    if (current) out.push(current);
+    if (sentence.length <= maxLength) current = sentence;
+    else {
+      out.push(...splitHardByWord(sentence, maxLength));
+      current = "";
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
+
+function splitHardByWord(text, maxLength) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const out = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxLength) {
+      current = candidate;
+      continue;
+    }
+    if (current) out.push(current);
+    if (word.length <= maxLength) current = word;
+    else {
+      for (let index = 0; index < word.length; index += maxLength) {
+        out.push(word.slice(index, index + maxLength));
+      }
+      current = "";
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
+
+async function runFfmpegConcatAudio(inputPaths, outputPath) {
+  if (!hasFfmpeg()) {
+    throw createHttpError(501, "Can cai ffmpeg de ghep cac file audio.");
+  }
+
+  const listPath = path.join(path.dirname(outputPath), "concat-list.txt");
+  const listContent = inputPaths
+    .map((inputPath) => `file '${String(inputPath).replace(/'/g, "'\\''")}'`)
+    .join("\n");
+  await fs.promises.writeFile(listPath, listContent, "utf8");
+
+  await new Promise((resolve, reject) => {
+    const args = [
+      "-y",
+      "-f", "concat",
+      "-safe", "0",
+      "-i", listPath,
+      "-c", "copy",
+      outputPath
+    ];
+    const proc = spawn(ffmpegExecutable, args, { windowsHide: true });
+    let stderr = "";
+
+    proc.stderr.on("data", (chunk) => {
+      stderr += String(chunk || "");
+    });
+    proc.on("error", () => reject(createHttpError(500, "Khong the chay ffmpeg de ghep audio.")));
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(createHttpError(500, `ffmpeg ghep audio that bai (code ${code}). ${stderr.slice(-240)}`));
+    });
+  });
+}
+
+async function registerMergedGiongNoiBundle(partUrls, filename) {
+  const extension = path.extname(filename).replace(/^\./, "") || "wav";
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "giongnoi-merge-"));
+  const inputPaths = [];
+  const outputPath = path.join(tempDir, filename);
+
+  try {
+    for (let index = 0; index < partUrls.length; index += 1) {
+      const inputPath = path.join(tempDir, `part-${index + 1}.${extension}`);
+      await downloadToFile(partUrls[index], inputPath, "https://ai.zalo.solutions/");
+      inputPaths.push(inputPath);
+    }
+    await runFfmpegConcatAudio(inputPaths, outputPath);
+
+    const id = createJobId();
+    giongNoiBundles.set(id, {
+      id,
+      outputPath,
+      filename,
+      tempDir,
+      createdAt: Date.now()
+    });
+    return id;
+  } catch (error) {
+    await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    throw error;
+  }
+}
+
 async function callZaloTtsApi(payload) {
   if (!ZALO_TTS_API_KEY) {
     throw createHttpError(500, "Chua cau hinh ZALO_TTS_API_KEY.");
@@ -3003,8 +3145,8 @@ async function callZaloTtsApi(payload) {
 
   const input = normalizeGiongNoiText(payload?.input);
   if (!input) throw createHttpError(400, "Vui long nhap noi dung can chuyen giong noi.");
-  if (input.length > 2000) {
-    throw createHttpError(400, "Noi dung qua dai. Hay rut gon xuong duoi 2000 ky tu.");
+  if (input.length > 10000) {
+    throw createHttpError(400, "Noi dung qua dai. Hay rut gon xuong duoi 10000 ky tu.");
   }
 
   const params = new URLSearchParams();
@@ -3015,26 +3157,36 @@ async function callZaloTtsApi(payload) {
   const speakerId = normalizeZaloTtsSpeakerId(payload?.speaker_id);
   params.set("speaker_id", speakerId);
 
-  const response = await fetch(`${ZALO_TTS_API_HOST}${ZALO_TTS_API_PATH}`, {
-    method: "POST",
-    headers: {
-      "apikey": ZALO_TTS_API_KEY,
-      "Accept": "application/json"
-    },
-    body: params
-  });
-
-  const text = await response.text();
+  let response = null;
   let json = null;
-  try {
-    json = text ? JSON.parse(text) : null;
-  } catch {
-    json = null;
-  }
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    response = await fetch(`${ZALO_TTS_API_HOST}${ZALO_TTS_API_PATH}`, {
+      method: "POST",
+      headers: {
+        "apikey": ZALO_TTS_API_KEY,
+        "Accept": "application/json"
+      },
+      body: params
+    });
 
-  if (!response.ok) {
+    const text = await response.text();
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+
+    if (response.ok) break;
+    if (response.status === 429 && attempt < 2) {
+      await sleep(1200 * (attempt + 1));
+      continue;
+    }
     const message = json?.message || json?.error || `Zalo TTS tra ve HTTP ${response.status}.`;
     throw createHttpError(502, message);
+  }
+
+  if (!response || !response.ok) {
+    throw createHttpError(502, "Khong the tao audio tu Zalo TTS.");
   }
 
   const audioUrl = String(json?.data?.url || "").trim();
@@ -3058,6 +3210,58 @@ async function callZaloTtsApi(payload) {
     speed: params.get("speed") || "1",
     encodeType: params.get("encode_type") || "0",
     speakerId
+  };
+}
+
+async function synthesizeLongTextWithZalo(payload) {
+  const input = normalizeGiongNoiText(payload?.input);
+  if (!input) throw createHttpError(400, "Vui long nhap noi dung can chuyen giong noi.");
+  if (input.length > 10000) {
+    throw createHttpError(400, "Noi dung qua dai. Hay rut gon xuong duoi 10000 ky tu.");
+  }
+
+  const parts = splitLongTextForZaloTts(input, 2000);
+  if (!parts.length) throw createHttpError(400, "Khong co noi dung hop le de tao audio.");
+
+  const encodeType = normalizeZaloTtsEncodeType(payload?.encode_type);
+  const extension = encodeType === "1" ? "mp3" : "wav";
+  const baseName = sanitizeAudioBaseName(payload?.filename || payload?.title || "zalo-tts", "zalo-tts");
+  const audioParts = [];
+
+  for (let index = 0; index < parts.length; index += 1) {
+    const result = await callZaloTtsApi({
+      ...payload,
+      input: parts[index],
+      encode_type: encodeType
+    });
+    const filename = sanitizeAudioFilename(`${baseName}-part-${index + 1}`, `${baseName}-part-${index + 1}`, extension);
+    audioParts.push({
+      index: index + 1,
+      text: parts[index],
+      text_length: parts[index].length,
+      audio_url: result.audioUrl,
+      audio_path: `/api/giongnoi/audio?url=${encodeURIComponent(result.audioUrl)}&filename=${encodeURIComponent(filename)}`,
+      filename
+    });
+  }
+
+  let mergedAudioPath = "";
+  let mergedFilename = "";
+  if (audioParts.length > 1 && hasFfmpeg()) {
+    mergedFilename = sanitizeAudioFilename(baseName, baseName, extension);
+    const bundleId = await registerMergedGiongNoiBundle(audioParts.map((part) => part.audio_url), mergedFilename);
+    mergedAudioPath = `/api/giongnoi/merged?id=${encodeURIComponent(bundleId)}`;
+  }
+
+  return {
+    parts: audioParts,
+    merged_audio_path: mergedAudioPath,
+    merged_filename: mergedFilename,
+    merged_supported: hasFfmpeg(),
+    part_count: audioParts.length,
+    speed: normalizeZaloTtsSpeed(payload?.speed),
+    encode_type: encodeType,
+    speaker_id: normalizeZaloTtsSpeakerId(payload?.speaker_id)
   };
 }
 
@@ -3129,18 +3333,21 @@ const server = http.createServer(async (req, res) => {
     try {
       const rawBody = await readRequestBody(req);
       const body = rawBody ? JSON.parse(rawBody) : {};
-      const result = await callZaloTtsApi(body);
-      const extension = result.encodeType === "1" ? "mp3" : "wav";
-      const filename = sanitizeAudioFilename(body.filename || body.title || "zalo-tts", "zalo-tts", extension);
+      const result = await synthesizeLongTextWithZalo(body);
+      const primaryPart = result.parts[0] || null;
       sendJson(res, 200, {
         ok: true,
-        audio_url: result.audioUrl,
-        audio_path: `/api/giongnoi/audio?url=${encodeURIComponent(result.audioUrl)}&filename=${encodeURIComponent(filename)}`,
-        filename,
+        audio_url: primaryPart?.audio_url || "",
+        audio_path: primaryPart?.audio_path || "",
+        filename: primaryPart?.filename || "",
         speed: result.speed,
-        encode_type: result.encodeType,
-        speaker_id: result.speakerId,
-        raw: result.raw
+        encode_type: result.encode_type,
+        speaker_id: result.speaker_id,
+        part_count: result.part_count,
+        parts: result.parts,
+        merged_audio_path: result.merged_audio_path,
+        merged_filename: result.merged_filename,
+        merged_supported: result.merged_supported
       });
     } catch (error) {
       const statusCode = Number(error?.statusCode) || 500;
@@ -3358,6 +3565,38 @@ const server = http.createServer(async (req, res) => {
       });
     } catch (error) {
       sendJson(res, 500, { error: error.message || "Khong the doc audio." });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/giongnoi/merged?")) {
+    try {
+      const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+      const parsed = new URL(req.url, base);
+      const id = String(parsed.searchParams.get("id") || "").trim();
+      const bundle = giongNoiBundles.get(id);
+      if (!bundle) return sendJson(res, 404, { error: "Khong tim thay file audio da ghep." });
+
+      await fs.promises.access(bundle.outputPath, fs.constants.R_OK);
+      const ext = path.extname(bundle.outputPath).toLowerCase();
+      res.writeHead(200, {
+        "Content-Type": MIME_TYPES[ext] || "audio/wav",
+        "Content-Disposition": `inline; filename="${bundle.filename}"`,
+        "Cache-Control": "no-store"
+      });
+
+      const stream = fs.createReadStream(bundle.outputPath);
+      stream.on("error", () => {
+        if (!res.headersSent) sendJson(res, 500, { error: "Khong doc duoc file audio da ghep." });
+        else res.destroy();
+      });
+      stream.on("close", async () => {
+        await fs.promises.rm(bundle.tempDir, { recursive: true, force: true }).catch(() => {});
+        giongNoiBundles.delete(id);
+      });
+      stream.pipe(res);
+    } catch (error) {
+      sendJson(res, 500, { error: error.message || "Khong the tai file audio da ghep." });
     }
     return;
   }

@@ -85,15 +85,19 @@
           </div>
 
           <div class="action-row">
-            <a id="listen-link" class="action-link disabled" href="#" target="_blank" rel="noopener noreferrer">Mở audio</a>
-            <a id="download-link" class="action-link disabled" href="#" download>Tải xuống</a>
+            <a id="listen-link" class="action-link action-link-primary disabled" href="#" target="_blank" rel="noopener noreferrer">Nghe ngay</a>
+            <a id="download-link" class="action-link action-link-secondary disabled" href="#" download>Tải xuống</a>
+            <a id="merged-link" class="action-link action-link-secondary disabled" href="#" download>Tải bản ghép</a>
             <button id="reset-btn" type="button" class="secondary-btn">Đặt lại</button>
           </div>
 
-          <details class="debug">
-            <summary>Raw response</summary>
-            <pre id="raw-output">Chưa có dữ liệu.</pre>
-          </details>
+          <section id="parts-panel" class="parts-panel is-empty">
+            <div class="parts-head">
+              <p class="result-label">Danh sách audio từng phần</p>
+              <span id="parts-count" class="parts-count">0 phần</span>
+            </div>
+            <div id="parts-list" class="parts-list"></div>
+          </section>
         </section>
       </div>
     </section>
