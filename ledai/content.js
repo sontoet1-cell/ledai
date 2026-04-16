@@ -141,25 +141,23 @@
     if (!latestUrl || isDownloading) return;
     isDownloading = true;
     const root = renderPanel();
-    const downloadButton = root.querySelector("#lg-download");
-    downloadButton.classList.add("disabled");
-    setStatus("Đang gửi link sang backend để xử lý MP3...");
+    const button = root.querySelector("#lg-download");
+    button.classList.add("disabled");
+    setStatus("Đang gửi backend xử lý MP3...");
     try {
       const result = await chrome.runtime.sendMessage({
         type: "ledai-download-mp3",
         url: latestUrl
       });
-      if (!result?.ok || !result?.fileUrl) {
-        throw new Error(result?.error || "Failed to fetch");
+      if (!result?.ok) {
+        throw new Error(result?.error || "Backend khong tai duoc audio.");
       }
-      const fileUrl = result.fileUrl;
-      window.open(fileUrl, "_blank", "noopener,noreferrer");
-      setStatus("Đã tạo file MP3. Trình duyệt đang mở link tải.", "success");
+      setStatus(`Đã gửi file tải: ${result.filename}`, "success");
     } catch (error) {
-      setStatus(error.message || "Không tải được MP3.", "error");
+      setStatus(error.message || "Backend khong tai duoc audio.", "error");
     } finally {
       isDownloading = false;
-      if (latestUrl) downloadButton.classList.remove("disabled");
+      if (latestUrl) button.classList.remove("disabled");
     }
   }
 

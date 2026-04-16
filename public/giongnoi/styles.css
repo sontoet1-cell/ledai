@@ -85,6 +85,15 @@ body {
   gap: 16px;
 }
 
+.extra-panel {
+  align-content: start;
+}
+
+.subhead {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
 .label,
 .field span {
   font-size: 0.98rem;
@@ -135,6 +144,11 @@ input {
   flex-wrap: wrap;
 }
 
+.actions.compact button,
+.actions.compact .download-link {
+  min-height: 46px;
+}
+
 button,
 .download-link {
   min-height: 56px;
@@ -180,6 +194,50 @@ button {
 
 .result.is-empty {
   color: #9099ae;
+}
+
+.progress-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(79, 101, 183, 0.08);
+}
+
+.progress-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.progress-bar {
+  height: 12px;
+  border-radius: 999px;
+  background: #e9eefb;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--purple));
+  transition: width 220ms ease;
+}
+
+.quick-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.quick-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(79, 101, 183, 0.08);
 }
 
 .status {

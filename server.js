@@ -42,6 +42,7 @@ const processJobs = new Map();
 const reclipJobs = new Map();
 const giongNoiBundles = new Map();
 const giongNoiFiles = new Map();
+const giongNoiLinkJobs = new Map();
 
 try {
   fs.mkdirSync(RUNTIME_TEMP_DIR, { recursive: true });
@@ -3010,6 +3011,44 @@ function sanitizeAudioBaseName(input, fallbackBase = "zalo-tts") {
   return cleaned || `${fallbackBase}-${Date.now()}`;
 }
 
+function parseFfmpegTimestampToSeconds(raw) {
+  const match = String(raw || "").match(/(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?/);
+  if (!match) return 0;
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+  const fraction = Number(`0.${match[4] || 0}`);
+  return (hours * 3600) + (minutes * 60) + seconds + fraction;
+}
+
+async function fetchZaloAudioText(url) {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Referer": "https://ai.zalo.solutions/",
+      "User-Agent": DEFAULT_HEADERS["User-Agent"]
+    }
+  });
+  if (!response.ok) {
+    throw createHttpError(502, `Khong the doc playlist audio (${response.status}).`);
+  }
+  return response.text();
+}
+
+async function getM3u8DurationSeconds(sourceUrl, depth = 0) {
+  if (depth > 2) return 0;
+  const text = await fetchZaloAudioText(sourceUrl);
+  const extinfMatches = [...text.matchAll(/#EXTINF:([\d.]+)/g)];
+  if (extinfMatches.length) {
+    return extinfMatches.reduce((sum, item) => sum + Number(item[1] || 0), 0);
+  }
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const child = lines.find((line) => !line.startsWith("#") && /\.m3u8($|\?)/i.test(line));
+  if (!child) return 0;
+  const nextUrl = new URL(child, sourceUrl).toString();
+  return getM3u8DurationSeconds(nextUrl, depth + 1);
+}
+
 function splitLongTextForZaloTts(input, maxLength = 2000) {
   const normalized = normalizeGiongNoiText(input);
   if (!normalized) return [];
@@ -3151,12 +3190,18 @@ function isAllowedZaloAudioHostname(hostname) {
     || host === "zdn.vn";
 }
 
-async function runFfmpegDownloadAudio(sourceUrl, outputPath, format = "mp3") {
+async function runFfmpegDownloadAudio(sourceUrl, outputPath, format = "mp3", onProgress) {
   if (!hasFfmpeg()) {
     throw createHttpError(501, "May chu chua co ffmpeg de tai audio tu link m3u8.");
   }
 
   const normalizedFormat = String(format || "mp3").toLowerCase();
+  let totalDuration = 0;
+  try {
+    totalDuration = await getM3u8DurationSeconds(sourceUrl);
+  } catch {
+    totalDuration = 0;
+  }
   await new Promise((resolve, reject) => {
     const args = [
       "-y",
@@ -3180,7 +3225,18 @@ async function runFfmpegDownloadAudio(sourceUrl, outputPath, format = "mp3") {
     let stderr = "";
 
     proc.stderr.on("data", (chunk) => {
-      stderr += String(chunk || "");
+      const text = String(chunk || "");
+      stderr += text;
+      if (typeof onProgress === "function" && totalDuration > 0) {
+        const matches = [...text.matchAll(/time=(\d{2}:\d{2}:\d{2}(?:\.\d+)?)/g)];
+        if (matches.length) {
+          const seconds = parseFfmpegTimestampToSeconds(matches[matches.length - 1][1]);
+          if (seconds > 0) {
+            const ratio = Math.max(0, Math.min(0.98, seconds / totalDuration));
+            onProgress(10 + (ratio * 85), "dang chuyen doi audio");
+          }
+        }
+      }
     });
     proc.on("error", () => reject(createHttpError(500, "Khong the chay ffmpeg de tai audio.")));
     proc.on("close", (code) => {
@@ -3190,7 +3246,7 @@ async function runFfmpegDownloadAudio(sourceUrl, outputPath, format = "mp3") {
   });
 }
 
-async function createGiongNoiFileFromM3u8(sourceUrl, format, baseName) {
+async function createGiongNoiFileFromM3u8(sourceUrl, format, baseName, onProgress) {
   let parsed = null;
   try {
     parsed = new URL(String(sourceUrl || "").trim());
@@ -3210,7 +3266,8 @@ async function createGiongNoiFileFromM3u8(sourceUrl, format, baseName) {
   const outputPath = path.join(tempDir, filename);
 
   try {
-    await runFfmpegDownloadAudio(parsed.toString(), outputPath, ext);
+    if (typeof onProgress === "function") onProgress(8, "dang tai playlist audio");
+    await runFfmpegDownloadAudio(parsed.toString(), outputPath, ext, onProgress);
     const id = createJobId();
     const cleanupAt = Date.now() + GIONGNOI_FILE_TTL_MS;
     giongNoiFiles.set(id, {
@@ -3238,6 +3295,30 @@ async function createGiongNoiFileFromM3u8(sourceUrl, format, baseName) {
   } catch (error) {
     await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
     throw error;
+  }
+}
+
+async function processGiongNoiLinkJob(job) {
+  job.status = "processing";
+  job.progress = 3;
+  job.stage = "dang tao file";
+  job.updated_at = Date.now();
+  try {
+    const result = await createGiongNoiFileFromM3u8(job.url, job.format, job.filename, (progress, stage) => {
+      job.progress = Math.max(job.progress || 0, Math.floor(progress));
+      if (stage) job.stage = stage;
+      job.updated_at = Date.now();
+    });
+    job.status = "done";
+    job.progress = 100;
+    job.stage = "hoan tat";
+    job.file_path = result.file_path;
+    job.result_filename = result.filename;
+    job.updated_at = Date.now();
+  } catch (error) {
+    job.status = "error";
+    job.error = error?.message || "Khong the tai audio tu link nay.";
+    job.updated_at = Date.now();
   }
 }
 
@@ -3516,6 +3597,101 @@ const server = http.createServer(async (req, res) => {
       const statusCode = Number(error?.statusCode) || 500;
       sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
         error: error?.message || "Khong the tai audio tu link nay."
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/giongnoi/jobs") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      const id = createJobId();
+      const job = {
+        id,
+        url: String(body.url || "").trim(),
+        format: String(body.format || "mp3").trim().toLowerCase(),
+        filename: String(body.filename || "zalo-audio-link").trim(),
+        status: "queued",
+        progress: 0,
+        stage: "dang xep hang",
+        error: "",
+        file_path: "",
+        result_filename: "",
+        created_at: Date.now(),
+        updated_at: Date.now()
+      };
+      giongNoiLinkJobs.set(id, job);
+      processGiongNoiLinkJob(job).catch(() => {});
+      sendJson(res, 200, {
+        ok: true,
+        job_id: id,
+        status: job.status,
+        progress: job.progress,
+        stage: job.stage
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode) || 500;
+      sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
+        error: error?.message || "Khong the tao job audio."
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/giongnoi/jobs/")) {
+    try {
+      const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+      const parsed = new URL(req.url, base);
+      const id = decodeURIComponent(parsed.pathname.slice("/api/giongnoi/jobs/".length));
+      const job = giongNoiLinkJobs.get(id);
+      if (!job) return sendJson(res, 404, { error: "Khong tim thay job audio." });
+      sendJson(res, 200, {
+        ok: true,
+        id: job.id,
+        status: job.status,
+        progress: job.progress,
+        stage: job.stage,
+        error: job.error || "",
+        file_path: job.file_path || "",
+        filename: job.result_filename || ""
+      });
+    } catch (error) {
+      sendJson(res, 500, { error: error?.message || "Khong the doc trang thai job." });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/giongnoi/media-download") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      const url = normalizeInputUrl(typeof body.url === "string" ? body.url : "");
+      if (!url) return sendJson(res, 400, { error: "Can nhap link media." });
+      const format = String(body.format || "video").toLowerCase() === "audio" ? "audio" : "video";
+      const title = typeof body.title === "string" ? body.title : "";
+
+      const jobId = createJobId();
+      const job = {
+        id: jobId,
+        url,
+        format,
+        formatId: "",
+        title,
+        status: "downloading",
+        file: "",
+        filename: "",
+        error: "",
+        created_at: Date.now(),
+        updated_at: Date.now()
+      };
+      reclipJobs.set(jobId, job);
+      runReclipDownloadJob(job).catch(() => {});
+      sendJson(res, 200, { ok: true, job_id: jobId });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode) || 500;
+      sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
+        error: error?.message || "Khong the tao job media."
       });
     }
     return;
