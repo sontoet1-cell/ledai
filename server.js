@@ -26,6 +26,9 @@ const PROXYXOAY_KEY = String(process.env.PROXYXOAY_KEY || "").trim();
 const PROXYXOAY_API_BASE = String(process.env.PROXYXOAY_API_BASE || "https://proxyxoay.shop").trim().replace(/\/+$/, "");
 const PROXYXOAY_CACHE_MS = Math.max(10000, Number(process.env.PROXYXOAY_CACHE_MS || 45000));
 const RECLIP_DOWNLOAD_DIR = path.join(RUNTIME_TEMP_DIR, "reclip_downloads");
+const ZALO_TTS_API_HOST = "https://api.zalo.ai";
+const ZALO_TTS_API_PATH = "/v1/tts/synthesize";
+const ZALO_TTS_API_KEY = String(process.env.ZALO_TTS_API_KEY || "").trim();
 
 const resolveCache = new Map();
 const inFlightResolves = new Map();
@@ -2910,7 +2913,17 @@ async function processDownloadJob(job) {
 }
 
 function serveStaticFile(req, res) {
-  const requestedPath = req.url === "/" ? "/index.html" : req.url;
+  let requestedPath = "/";
+  try {
+    const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+    const parsed = new URL(req.url, base);
+    requestedPath = parsed.pathname || "/";
+  } catch {
+    requestedPath = req.url || "/";
+  }
+  if (requestedPath === "/") requestedPath = "/index.html";
+  else if (requestedPath.endsWith("/")) requestedPath += "index.html";
+  else if (!path.extname(requestedPath)) requestedPath += "/index.html";
   const safePath = path.normalize(requestedPath).replace(/^(\.\.[\\/])+/, "");
   const filePath = path.join(PUBLIC_DIR, safePath);
 
@@ -2951,6 +2964,101 @@ function readRequestBody(req) {
     req.on("end", () => resolve(raw));
     req.on("error", reject);
   });
+}
+
+function normalizeGiongNoiText(value) {
+  return String(value || "").replace(/\r\n/g, "\n").trim();
+}
+
+function normalizeZaloTtsSpeed(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return "1";
+  const normalized = Math.max(0.8, Math.min(1.2, parsed));
+  return String(Number(normalized.toFixed(2)));
+}
+
+function normalizeZaloTtsEncodeType(value) {
+  const raw = String(value || "").trim();
+  return raw === "1" ? "1" : "0";
+}
+
+function normalizeZaloTtsSpeakerId(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "1";
+  return /^[1-4]$/.test(raw) ? raw : "1";
+}
+
+function sanitizeAudioFilename(input, fallbackBase = "zalo-tts", fallbackExt = "wav") {
+  const raw = String(input || "").trim();
+  const cleaned = raw.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").replace(/\s+/g, "-").slice(0, 96);
+  const base = cleaned || `${fallbackBase}-${Date.now()}`;
+  const ext = String(fallbackExt || "wav").replace(/^\.+/, "") || "wav";
+  return `${base}.${ext}`;
+}
+
+async function callZaloTtsApi(payload) {
+  if (!ZALO_TTS_API_KEY) {
+    throw createHttpError(500, "Chua cau hinh ZALO_TTS_API_KEY.");
+  }
+
+  const input = normalizeGiongNoiText(payload?.input);
+  if (!input) throw createHttpError(400, "Vui long nhap noi dung can chuyen giong noi.");
+  if (input.length > 2000) {
+    throw createHttpError(400, "Noi dung qua dai. Hay rut gon xuong duoi 2000 ky tu.");
+  }
+
+  const params = new URLSearchParams();
+  params.set("input", input);
+  params.set("speed", normalizeZaloTtsSpeed(payload?.speed));
+  params.set("encode_type", normalizeZaloTtsEncodeType(payload?.encode_type));
+
+  const speakerId = normalizeZaloTtsSpeakerId(payload?.speaker_id);
+  params.set("speaker_id", speakerId);
+
+  const response = await fetch(`${ZALO_TTS_API_HOST}${ZALO_TTS_API_PATH}`, {
+    method: "POST",
+    headers: {
+      "apikey": ZALO_TTS_API_KEY,
+      "Accept": "application/json"
+    },
+    body: params
+  });
+
+  const text = await response.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = null;
+  }
+
+  if (!response.ok) {
+    const message = json?.message || json?.error || `Zalo TTS tra ve HTTP ${response.status}.`;
+    throw createHttpError(502, message);
+  }
+
+  const audioUrl = String(json?.data?.url || "").trim();
+  if (!audioUrl) {
+    throw createHttpError(502, json?.message || "Khong lay duoc link audio tu Zalo TTS.");
+  }
+
+  let parsedAudioUrl = null;
+  try {
+    parsedAudioUrl = new URL(audioUrl);
+  } catch {
+    throw createHttpError(502, "Link audio Zalo tra ve khong hop le.");
+  }
+  if (!/^https?:$/i.test(parsedAudioUrl.protocol) || isUnsafeHostname(parsedAudioUrl.hostname)) {
+    throw createHttpError(502, "Link audio Zalo tra ve khong an toan.");
+  }
+
+  return {
+    raw: json,
+    audioUrl,
+    speed: params.get("speed") || "1",
+    encodeType: params.get("encode_type") || "0",
+    speakerId
+  };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -3013,6 +3121,33 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
         error: sanitizeClientErrorMessage(error?.message || "Khong the tao job tai xuong.")
       });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/giongnoi/synthesize") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      const result = await callZaloTtsApi(body);
+      const extension = result.encodeType === "1" ? "mp3" : "wav";
+      const filename = sanitizeAudioFilename(body.filename || body.title || "zalo-tts", "zalo-tts", extension);
+      sendJson(res, 200, {
+        ok: true,
+        audio_url: result.audioUrl,
+        audio_path: `/api/giongnoi/audio?url=${encodeURIComponent(result.audioUrl)}&filename=${encodeURIComponent(filename)}`,
+        filename,
+        speed: result.speed,
+        encode_type: result.encodeType,
+        speaker_id: result.speakerId,
+        raw: result.raw
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode) || 500;
+      const message = error instanceof SyntaxError
+        ? "Request JSON khong hop le."
+        : (error?.message || "Khong the tao audio tu Zalo TTS.");
+      sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, { error: message });
     }
     return;
   }
@@ -3171,6 +3306,58 @@ const server = http.createServer(async (req, res) => {
       });
     } catch {
       sendJson(res, 500, { error: "Khong the doc tien trinh." });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/giongnoi/audio?")) {
+    try {
+      const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+      const parsed = new URL(req.url, base);
+      const sourceUrl = String(parsed.searchParams.get("url") || "").trim();
+      const filename = sanitizeAudioFilename(parsed.searchParams.get("filename") || "zalo-tts", "zalo-tts", "wav");
+      if (!sourceUrl) return sendJson(res, 400, { error: "Thieu tham so url." });
+
+      const sourceParsed = new URL(sourceUrl);
+      if (!/^https?:$/i.test(sourceParsed.protocol) || isUnsafeHostname(sourceParsed.hostname)) {
+        return sendJson(res, 400, { error: "Nguon audio khong hop le." });
+      }
+
+      const upstream = await fetch(sourceUrl, {
+        method: "GET",
+        headers: {
+          ...DEFAULT_HEADERS,
+          "Referer": "https://ai.zalo.solutions/"
+        },
+        redirect: "follow"
+      });
+
+      if (!upstream.ok || !upstream.body) {
+        return sendJson(res, 502, { error: "Khong the tai audio tu Zalo." });
+      }
+
+      res.writeHead(200, {
+        "Content-Type": upstream.headers.get("content-type") || "audio/wav",
+        "Content-Disposition": `inline; filename="${filename}"`,
+        "Cache-Control": "no-store"
+      });
+
+      upstream.body.pipeTo(new WritableStream({
+        write(chunk) {
+          res.write(Buffer.from(chunk));
+        },
+        close() {
+          res.end();
+        },
+        abort(err) {
+          res.destroy(err);
+        }
+      })).catch((err) => {
+        if (!res.headersSent) sendJson(res, 500, { error: "Loi khi stream audio." });
+        else res.destroy(err);
+      });
+    } catch (error) {
+      sendJson(res, 500, { error: error.message || "Khong the doc audio." });
     }
     return;
   }

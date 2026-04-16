@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giong Noi Zalo AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/giongnoi/styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Zalo AI Text To Audio</p>
+        <h1>Tao audio tu van ban ngay trong site `giongnoi`</h1>
+        <p class="lead">
+          Site nay goi backend proxy den Zalo TTS API theo host <code>https://api.zalo.ai</code>,
+          giu API key o server va tra ve audio de nghe, mo link goc hoac tai xuong.
+        </p>
+        <div class="badge-row">
+          <span class="badge">Endpoint: <code>/v1/tts/synthesize</code></span>
+          <span class="badge">Speaker: <code>1-4</code></span>
+          <span class="badge">Speed: <code>0.8-1.2</code></span>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="panel-stat">
+          <span>Mode</span>
+          <strong>Server-side proxy</strong>
+        </div>
+        <div class="panel-stat">
+          <span>Format mac dinh</span>
+          <strong>WAV</strong>
+        </div>
+        <div class="panel-stat">
+          <span>Route</span>
+          <strong>/api/giongnoi/synthesize</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <form id="tts-form" class="composer">
+        <label class="field field-large">
+          <span>Noi dung</span>
+          <textarea id="input" name="input" rows="9" maxlength="2000" placeholder="Nhap noi dung tieng Viet can chuyen thanh giong noi..." required>Xin chao, day la trang demo Zalo AI Text to Audio duoc tich hop truc tiep vao site giongnoi.</textarea>
+          <small><span id="char-count">0</span>/2000 ky tu</small>
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Giong doc</span>
+            <select id="speaker_id" name="speaker_id">
+              <option value="1">1 - Nu mien Nam</option>
+              <option value="2">2 - Nu mien Bac</option>
+              <option value="3">3 - Nam mien Nam</option>
+              <option value="4">4 - Nam mien Bac</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Toc do</span>
+            <select id="speed" name="speed">
+              <option value="0.8">0.8</option>
+              <option value="0.9">0.9</option>
+              <option value="1" selected>1.0</option>
+              <option value="1.1">1.1</option>
+              <option value="1.2">1.2</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Ten file</span>
+            <input id="filename" name="filename" type="text" value="giongnoi-zalo-demo">
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="submit-btn" type="submit">Tao audio</button>
+          <button id="reset-btn" type="button" class="ghost">Dat lai</button>
+          <p id="status" class="status">San sang.</p>
+        </div>
+      </form>
+
+      <aside class="result-card">
+        <div class="result-head">
+          <p class="eyebrow">Ket qua</p>
+          <h2>Preview audio</h2>
+        </div>
+
+        <audio id="player" controls preload="none"></audio>
+
+        <div id="result-meta" class="result-meta is-empty">
+          Chua co audio. Bam <strong>Tao audio</strong> de goi API.
+        </div>
+
+        <div class="result-actions">
+          <a id="listen-link" class="action-link disabled" href="#" target="_blank" rel="noopener noreferrer">Mo audio</a>
+          <a id="download-link" class="action-link disabled" href="#" download>Tai xuong</a>
+        </div>
+
+        <details class="debug">
+          <summary>Raw response</summary>
+          <pre id="raw-output">Chua co du lieu.</pre>
+        </details>
+      </aside>
+    </section>
+  </main>
+
+  <script src="/giongnoi/app.js" defer></script>
+</body>
+</html>
