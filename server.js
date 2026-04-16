@@ -3156,6 +3156,8 @@ async function runFfmpegDownloadAudio(sourceUrl, outputPath, format = "mp3") {
   await new Promise((resolve, reject) => {
     const args = [
       "-y",
+      "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
+      "-allowed_extensions", "ALL",
       "-headers", "Referer: https://ai.zalo.solutions/\r\nUser-Agent: Mozilla/5.0\r\n",
       "-i", sourceUrl
     ];
