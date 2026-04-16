@@ -1,10 +1,15 @@
 const form = document.getElementById("tts-form");
+const m3u8Form = document.getElementById("m3u8-form");
 const input = document.getElementById("input");
 const speaker = document.getElementById("speaker_id");
 const speed = document.getElementById("speed");
 const filename = document.getElementById("filename");
+const m3u8Url = document.getElementById("m3u8-url");
+const m3u8Format = document.getElementById("m3u8-format");
+const m3u8Filename = document.getElementById("m3u8-filename");
 const player = document.getElementById("player");
 const statusEl = document.getElementById("status");
+const m3u8StatusEl = document.getElementById("m3u8-status");
 const resultMeta = document.getElementById("result-meta");
 const charCount = document.getElementById("char-count");
 const speedValue = document.getElementById("speed-value");
@@ -13,6 +18,7 @@ const resetBtn = document.getElementById("reset-btn");
 const listenLink = document.getElementById("listen-link");
 const downloadLink = document.getElementById("download-link");
 const mergedLink = document.getElementById("merged-link");
+const m3u8DownloadLink = document.getElementById("m3u8-download-link");
 const partsPanel = document.getElementById("parts-panel");
 const partsCount = document.getElementById("parts-count");
 const partsList = document.getElementById("parts-list");
@@ -38,6 +44,12 @@ function setStatus(message, type = "") {
   statusEl.textContent = message;
   statusEl.classList.remove("is-error", "is-success");
   if (type) statusEl.classList.add(type);
+}
+
+function setM3u8Status(message, type = "") {
+  m3u8StatusEl.textContent = message;
+  m3u8StatusEl.classList.remove("is-error", "is-success");
+  if (type) m3u8StatusEl.classList.add(type);
 }
 
 function setLinksDisabled(disabled) {
@@ -166,6 +178,52 @@ async function createAudio(event) {
   }
 }
 
+async function downloadFromM3u8(event) {
+  event.preventDefault();
+  const url = String(m3u8Url.value || "").trim();
+  if (!url) {
+    setM3u8Status("Can dan link .m3u8 truoc khi tai.", "is-error");
+    m3u8Url.focus();
+    return;
+  }
+
+  const submitButton = document.getElementById("m3u8-submit");
+  submitButton.disabled = true;
+  m3u8DownloadLink.href = "#";
+  m3u8DownloadLink.removeAttribute("download");
+  m3u8DownloadLink.classList.add("disabled");
+  m3u8DownloadLink.setAttribute("aria-disabled", "true");
+  setM3u8Status("Dang tai va xu ly audio tu link m3u8...", "");
+
+  try {
+    const response = await fetch("/api/giongnoi/from-link", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        url,
+        format: m3u8Format.value,
+        filename: m3u8Filename.value.trim() || "zalo-audio-link"
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "Khong tai duoc audio tu link nay.");
+    }
+
+    m3u8DownloadLink.href = data.file_path;
+    m3u8DownloadLink.download = data.filename || `zalo-audio.${data.format || "mp3"}`;
+    m3u8DownloadLink.classList.remove("disabled");
+    m3u8DownloadLink.removeAttribute("aria-disabled");
+    setM3u8Status("Da xu ly xong. Bam nut tai file de luu ve may.", "is-success");
+  } catch (error) {
+    setM3u8Status(error.message || "Khong tai duoc audio tu link nay.", "is-error");
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
 function resetForm() {
   form.reset();
   speaker.value = "5";
@@ -176,13 +234,23 @@ function resetForm() {
   updateSpeedValue();
   setStatus("Da dat lai mau demo.");
   resetResult();
+  m3u8Url.value = "";
+  m3u8Format.value = "mp3";
+  m3u8Filename.value = "zalo-audio-link";
+  m3u8DownloadLink.href = "#";
+  m3u8DownloadLink.removeAttribute("download");
+  m3u8DownloadLink.classList.add("disabled");
+  m3u8DownloadLink.setAttribute("aria-disabled", "true");
+  setM3u8Status("Dùng khi bạn đã có link `.m3u8` từ trang Zalo.");
 }
 
 input.addEventListener("input", updateCharCount);
 speed.addEventListener("input", updateSpeedValue);
 form.addEventListener("submit", createAudio);
+m3u8Form.addEventListener("submit", downloadFromM3u8);
 resetBtn.addEventListener("click", resetForm);
 
 updateCharCount();
 updateSpeedValue();
 resetResult();
+setM3u8Status("Dùng khi bạn đã có link `.m3u8` từ trang Zalo.");

@@ -74,6 +74,39 @@
           <p id="status" class="status">Sẵn sàng.</p>
         </form>
 
+        <form id="m3u8-form" class="form-panel alt-panel">
+          <label class="label" for="m3u8-url">Dán link audio `.m3u8` của Zalo:</label>
+          <div class="textarea-wrap textarea-wrap-small">
+            <textarea
+              id="m3u8-url"
+              name="m3u8-url"
+              rows="4"
+              placeholder="https://audiostream-v3.tts.zalo.ai/secure/m3u8/....m3u8?expires=..."
+            ></textarea>
+          </div>
+
+          <div class="inline-grid">
+            <div>
+              <label class="label" for="m3u8-format">Định dạng tải:</label>
+              <select id="m3u8-format" class="control">
+                <option value="mp3" selected>MP3</option>
+                <option value="wav">WAV</option>
+                <option value="aac">AAC</option>
+              </select>
+            </div>
+            <div>
+              <label class="label" for="m3u8-filename">Tên file:</label>
+              <input id="m3u8-filename" class="control input-control" type="text" value="zalo-audio-link">
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="m3u8-submit" type="submit" class="primary-btn">Tải từ link</button>
+            <a id="m3u8-download-link" class="action-link action-link-secondary disabled" href="#" download>Tải file đã xử lý</a>
+          </div>
+          <p id="m3u8-status" class="status">Dùng khi bạn đã có link `.m3u8` từ trang Zalo.</p>
+        </form>
+
         <section class="result-panel">
           <div class="result-box">
             <p class="result-label">Kết quả âm thanh</p>

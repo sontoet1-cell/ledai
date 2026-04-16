@@ -108,6 +108,10 @@ body {
   gap: 16px;
 }
 
+.alt-panel {
+  align-content: start;
+}
+
 .label,
 .result-label {
   font-size: 1rem;
@@ -130,6 +134,10 @@ body {
 .textarea-wrap {
   position: relative;
   overflow: hidden;
+}
+
+.textarea-wrap-small textarea {
+  min-height: 120px;
 }
 
 .textarea-wrap textarea {
@@ -166,6 +174,18 @@ body {
   font-size: 1rem;
   color: var(--ink);
   outline: none;
+}
+
+.input-control {
+  display: block;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.inline-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 16px;
 }
 
 .slider-panel {
@@ -392,5 +412,9 @@ audio {
 
   .textarea-wrap textarea {
     min-height: 260px;
+  }
+
+  .inline-grid {
+    grid-template-columns: 1fr;
   }
 }
