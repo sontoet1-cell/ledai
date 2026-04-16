@@ -21,7 +21,7 @@ function resetDownloadState() {
 }
 
 async function handleSubmit(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   const url = String(urlInput.value || "").trim();
   if (!url) {
     setStatus("Cần dán link .m3u8 trước khi tải.", "is-error");
@@ -74,3 +74,22 @@ async function handleSubmit(event) {
 
 form.addEventListener("submit", handleSubmit);
 resetDownloadState();
+
+(function hydrateFromQuery() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const url = String(params.get("url") || "").trim();
+    const format = String(params.get("format") || "").trim().toLowerCase();
+    const autostart = params.get("autostart") === "1";
+    if (!url) return;
+    urlInput.value = url;
+    if (["mp3", "wav", "aac"].includes(format)) {
+      formatInput.value = format;
+    }
+    if (autostart) {
+      handleSubmit();
+    }
+  } catch {
+    // Ignore bad query params.
+  }
+})();

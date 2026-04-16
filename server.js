@@ -32,6 +32,7 @@ const ZALO_TTS_API_KEY = String(process.env.ZALO_TTS_API_KEY || "").trim();
 const ZALO_TTS_MAX_RETRIES = Math.max(1, Number(process.env.ZALO_TTS_MAX_RETRIES || 4));
 const ZALO_TTS_RETRY_BASE_MS = Math.max(1000, Number(process.env.ZALO_TTS_RETRY_BASE_MS || 5000));
 const ZALO_TTS_PART_DELAY_MS = Math.max(0, Number(process.env.ZALO_TTS_PART_DELAY_MS || 4500));
+const GIONGNOI_FILE_TTL_MS = Math.max(60 * 1000, Number(process.env.GIONGNOI_FILE_TTL_MS || (15 * 60 * 1000)));
 
 const resolveCache = new Map();
 const inFlightResolves = new Map();
@@ -3211,18 +3212,28 @@ async function createGiongNoiFileFromM3u8(sourceUrl, format, baseName) {
   try {
     await runFfmpegDownloadAudio(parsed.toString(), outputPath, ext);
     const id = createJobId();
+    const cleanupAt = Date.now() + GIONGNOI_FILE_TTL_MS;
     giongNoiFiles.set(id, {
       id,
       outputPath,
       filename,
       tempDir,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      cleanupAt
     });
+    setTimeout(async () => {
+      const current = giongNoiFiles.get(id);
+      if (!current) return;
+      if (Date.now() < current.cleanupAt) return;
+      await fs.promises.rm(current.tempDir, { recursive: true, force: true }).catch(() => {});
+      giongNoiFiles.delete(id);
+    }, GIONGNOI_FILE_TTL_MS + 5000).unref?.();
     return {
       id,
       filename,
       file_path: `/api/giongnoi/file?id=${encodeURIComponent(id)}`,
-      ext
+      ext,
+      expires_in_ms: GIONGNOI_FILE_TTL_MS
     };
   } catch (error) {
     await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
@@ -3367,7 +3378,7 @@ async function synthesizeLongTextWithZalo(payload) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if ((req.method === "GET" || req.method === "HEAD") && req.url === "/healthz") {
+  if ((req.method === "GET" || req.method === "HEAD") && (req.url === "/healthz" || req.url === "/giongnoi/healthz")) {
     if (req.method === "HEAD") {
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
       res.end();
@@ -3740,17 +3751,13 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, {
         "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
         "Content-Disposition": `attachment; filename="${file.filename}"`,
-        "Cache-Control": "no-store"
+        "Cache-Control": "private, max-age=300"
       });
 
       const stream = fs.createReadStream(file.outputPath);
       stream.on("error", () => {
         if (!res.headersSent) sendJson(res, 500, { error: "Khong doc duoc file audio." });
         else res.destroy();
-      });
-      stream.on("close", async () => {
-        await fs.promises.rm(file.tempDir, { recursive: true, force: true }).catch(() => {});
-        giongNoiFiles.delete(id);
       });
       stream.pipe(res);
     } catch (error) {
