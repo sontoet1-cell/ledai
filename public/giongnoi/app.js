@@ -8,6 +8,7 @@ const statusEl = document.getElementById("status");
 const resultMeta = document.getElementById("result-meta");
 const rawOutput = document.getElementById("raw-output");
 const charCount = document.getElementById("char-count");
+const speedValue = document.getElementById("speed-value");
 const submitBtn = document.getElementById("submit-btn");
 const resetBtn = document.getElementById("reset-btn");
 const listenLink = document.getElementById("listen-link");
@@ -15,6 +16,10 @@ const downloadLink = document.getElementById("download-link");
 
 function updateCharCount() {
   charCount.textContent = String(input.value.length);
+}
+
+function updateSpeedValue() {
+  speedValue.textContent = `${Number(speed.value).toFixed(1)}x`;
 }
 
 function setStatus(message, type = "") {
@@ -112,18 +117,21 @@ async function createAudio(event) {
 
 function resetForm() {
   form.reset();
-  speaker.value = "1";
+  speaker.value = "5";
   speed.value = "1";
   filename.value = "giongnoi-zalo-demo";
-  input.value = "Xin chao, day la trang demo Zalo AI Text to Audio duoc tich hop truc tiep vao site giongnoi.";
+  input.value = "Xin chào, đây là trang demo Zalo AI Text to Audio được phát triển bởi Lê Đại.";
   updateCharCount();
+  updateSpeedValue();
   setStatus("Da dat lai mau demo.");
   resetResult();
 }
 
 input.addEventListener("input", updateCharCount);
+speed.addEventListener("input", updateSpeedValue);
 form.addEventListener("submit", createAudio);
 resetBtn.addEventListener("click", resetForm);
 
 updateCharCount();
+updateSpeedValue();
 resetResult();

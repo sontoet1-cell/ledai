@@ -2985,7 +2985,7 @@ function normalizeZaloTtsEncodeType(value) {
 function normalizeZaloTtsSpeakerId(value) {
   const raw = String(value || "").trim();
   if (!raw) return "1";
-  return /^[1-4]$/.test(raw) ? raw : "1";
+  return /^[1-6]$/.test(raw) ? raw : "1";
 }
 
 function sanitizeAudioFilename(input, fallbackBase = "zalo-tts", fallbackExt = "wav") {
