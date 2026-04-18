@@ -2218,6 +2218,11 @@ function postProcessByPlatform(result, platform) {
 
   return {
     ...result,
+    qualities: qualities.map((item) => ({
+      ...item,
+      platform: item?.platform || platform,
+      page_url: item?.page_url || result?.source_page_url || ""
+    })),
     requires_postprocess: needMerge
   };
 }
@@ -4063,9 +4068,19 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: "Nguon tai khong hop le." });
       }
 
+      let refererOverride = "";
+      try {
+        const pageParsed = new URL(pageUrl);
+        if (/^https?:$/i.test(pageParsed.protocol) && !isUnsafeHostname(pageParsed.hostname)) {
+          refererOverride = pageParsed.toString();
+        }
+      } catch {
+        refererOverride = "";
+      }
+
       const upstream = await fetch(sourceUrl, {
         method: "GET",
-        headers: buildSourceHeaders(sourceUrl),
+        headers: buildSourceHeaders(sourceUrl, refererOverride),
         redirect: "follow"
       });
 
@@ -4159,6 +4174,8 @@ server.listen(PORT, () => {
   console.log(`[boot] tikwm=${TIKWM_API_BASE}`);
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
+
 
 
 
