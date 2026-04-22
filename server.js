@@ -1946,44 +1946,137 @@ function soraRefererByPlatform(platform) {
   return "https://sora2dl.com/";
 }
 
+function collectUrlsDeep(value, out = []) {
+  if (!value) return out;
+  if (typeof value === "string") {
+    const url = normalizeVideoUrl(value);
+    if (url) out.push(url);
+    return out;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectUrlsDeep(item, out);
+    return out;
+  }
+  if (typeof value === "object") {
+    for (const v of Object.values(value)) collectUrlsDeep(v, out);
+  }
+  return out;
+}
+
+function extractJimengFromLandingPayload(payload) {
+  const root = payload?.data?.page_info?.creation || payload?.data?.creation || null;
+  const list = payload?.data?.page_info?.creation_list || payload?.data?.creation_list || [];
+  const candidates = [root, ...list].filter(Boolean);
+
+  for (const item of candidates) {
+    const metadata = item?.metadata || {};
+    const urls = collectUrlsDeep(metadata.download_info, []);
+    if (typeof metadata.video_url === "string") urls.push(metadata.video_url);
+    const deduped = [...new Set(urls.map((u) => normalizeVideoUrl(u)).filter(Boolean))];
+    if (!deduped.length) continue;
+
+    return {
+      item_id: String(metadata.video_id || item?.id || ""),
+      title: String(metadata.title || ""),
+      cover_url: String(metadata.cover_url || ""),
+      qualities: deduped.map((u, i) => ({
+        label: i === 0 ? "Jimeng Origin" : `Jimeng ${i + 1}`,
+        quality: i === 0 ? "origin" : `q${i + 1}`,
+        url: u,
+        width: Number(metadata.width) || 0,
+        height: Number(metadata.height) || detectQualityNumber(u),
+        fps: Number(metadata.fps) || 0,
+        has_audio: true,
+        audio_url: "",
+        watermark_status: /without_watermark|no_watermark/i.test(u) ? "likely_no_watermark" : "unknown"
+      }))
+    };
+  }
+  return null;
+}
+
+async function resolveJimengViaLandingApi(url) {
+  const redirected = await resolveRedirectInfo(url);
+  const finalUrl = new URL(redirected.location || url);
+  const queryParams = {};
+  for (const [key, value] of finalUrl.searchParams.entries()) {
+    queryParams[key] = value;
+  }
+
+  const endpoint = "https://jimeng.jianying.com/luckycat/cn/jianying/campaign/v1/dreamina/share/landing_page";
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...DEFAULT_HEADERS,
+      Referer: "https://jimeng.jianying.com/",
+      Origin: "https://jimeng.jianying.com"
+    },
+    body: JSON.stringify({
+      query_params: queryParams,
+      item_id: queryParams.id || "",
+      sec_uid: queryParams.share_sec_uid || "",
+      prop_id: ""
+    })
+  });
+
+  if (!response.ok) {
+    throw createHttpError(502, `Jimeng landing API tra ve HTTP ${response.status}.`);
+  }
+
+  const payload = await response.json().catch(() => null);
+  if (!payload || String(payload.err_no || "0") !== "0") {
+    throw createHttpError(502, payload?.err_tips || "Jimeng landing API khong tra du lieu hop le.");
+  }
+
+  const extracted = extractJimengFromLandingPayload(payload);
+  if (!extracted?.qualities?.length) {
+    throw createHttpError(502, "Jimeng landing API khong tim thay nguon video.");
+  }
+  return normalizeVideoResult(extracted, url);
+}
+
 async function resolveViaSora(url, platform = "unknown") {
   if (platform === "jimeng") {
-    const response = await fetch("https://savevideoraw.com/apij.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...DEFAULT_HEADERS,
-        Referer: "https://savevideoraw.com/jimeng",
-        Origin: "https://savevideoraw.com"
-      },
-      body: JSON.stringify({ text: url })
-    });
-
-    if (!response.ok) {
-      throw createHttpError(502, `Jimeng gateway tra ve HTTP ${response.status}.`);
+    try {
+      const direct = await resolveJimengViaLandingApi(url);
+      if (direct?.qualities?.length) return direct;
+    } catch (error) {
+      console.warn(`[jimeng] landing-api failed: ${error?.message || error}`);
     }
 
-    const json = await response.json().catch(() => null);
-    console.log("[jimeng] gateway keys", json && typeof json === "object" ? Object.keys(json).slice(0, 30) : []);
-    console.log("[jimeng] gateway top-level", {
-      origin: Boolean(json?.origin),
-      original: Boolean(json?.original),
-      raw: Boolean(json?.raw),
-      best: Boolean(json?.best),
-      url: Boolean(json?.url),
-      video_url: Boolean(json?.video_url),
-      download_url: Boolean(json?.download_url),
-      qualities: Array.isArray(json?.qualities) ? json.qualities.length : 0,
-      data: Array.isArray(json?.data) ? json.data.length : 0
-    });
-    const normalized = normalizeJimengSoraPayload(json);
-    if (!normalized) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await fetch("https://savevideoraw.com/apij.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...DEFAULT_HEADERS,
+          Referer: "https://savevideoraw.com/jimeng",
+          Origin: "https://savevideoraw.com"
+        },
+        body: JSON.stringify({ text: url })
+      });
+
+      if (!response.ok) {
+        if (attempt === 0 && (response.status >= 500 || response.status === 429)) {
+          await sleep(700);
+          continue;
+        }
+        throw createHttpError(502, `Jimeng gateway tra ve HTTP ${response.status}.`);
+      }
+
+      const json = await response.json().catch(() => null);
+      const normalized = normalizeJimengSoraPayload(json);
+      if (normalized?.qualities?.length) {
+        return normalizeVideoResult(normalized, url);
+      }
+
+      if (attempt === 0) {
+        await sleep(700);
+        continue;
+      }
       throw createHttpError(502, json?.error || "Jimeng gateway khong tra du lieu hop le.");
     }
-    console.log("[jimeng] normalized raw qualities", summarizeQualityDebug(normalized.qualities));
-    const finalNormalized = normalizeVideoResult(normalized, url);
-    console.log("[jimeng] final qualities", summarizeQualityDebug(finalNormalized.qualities));
-    return finalNormalized;
   }
 
   const endpoint = `https://sora2dl.com/downloadi.php?url=${encodeURIComponent(url)}`;
@@ -2644,16 +2737,35 @@ async function resolveVideoByPlatform(url) {
   }
 
   if (platform === "jimeng") {
-    const soraJimeng = await resolveViaSora(normalizedForResolver, platform);
-    if (soraJimeng?.qualities?.length) {
-      return postProcessByPlatform({
-        ...soraJimeng,
-        source_page_url: normalizedForResolver,
-        resolver: "sora2dl_jimeng",
-        platform
-      }, platform);
+    try {
+      const soraJimeng = await resolveViaSora(normalizedForResolver, platform);
+      if (soraJimeng?.qualities?.length) {
+        return postProcessByPlatform({
+          ...soraJimeng,
+          source_page_url: normalizedForResolver,
+          resolver: "jimeng_direct",
+          platform
+        }, platform);
+      }
+    } catch (error) {
+      lastError = normalizeProcessError(error, "Khong lay duoc du lieu Jimeng.");
     }
-    throw createHttpError(500, "Khong lay duoc du lieu Jimeng tu sora2dl.");
+
+    try {
+      const ytdlpJimeng = await resolveViaYtDlp(normalizedForResolver, "jimeng");
+      if (ytdlpJimeng?.qualities?.length) {
+        return postProcessByPlatform({
+          ...ytdlpJimeng,
+          source_page_url: normalizedForResolver,
+          resolver: "yt_dlp",
+          platform
+        }, platform);
+      }
+    } catch (error) {
+      if (!lastError) lastError = normalizeProcessError(error, "Khong lay duoc du lieu Jimeng.");
+    }
+
+    throw createHttpError(Number(lastError?.statusCode) || 502, lastError?.message || "Khong lay duoc du lieu Jimeng.");
   }
 
   if (platform === "douyin") {
