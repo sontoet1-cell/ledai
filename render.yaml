@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: tienich-pro-downloader
+    name: ledai
     env: docker
     plan: free
     autoDeploy: true
