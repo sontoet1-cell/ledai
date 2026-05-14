@@ -44,7 +44,7 @@ function setProgress(progress, stage = "Tiến độ xử lý") {
 
 async function pollJob(jobId) {
   while (true) {
-    const response = await fetch(`/api/giongnoi/jobs/${encodeURIComponent(jobId)}`);
+    const response = await fetch(`/api/status/${encodeURIComponent(jobId)}`);
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(data.error || "Không đọc được tiến độ job.");
@@ -71,6 +71,23 @@ function resetQuickDownload(node) {
   node.setAttribute("aria-disabled", "true");
 }
 
+async function createDownloadJob(url, format, title = "") {
+  const response = await fetch("/api/download", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url,
+      format,
+      title
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "Không thể tạo job tải xuống.");
+  }
+  return data.job_id;
+}
+
 async function startQuickDownload(urlValue, button, linkNode, statusNode, label) {
   const url = String(urlValue.value || "").trim();
   if (!url) {
@@ -82,18 +99,7 @@ async function startQuickDownload(urlValue, button, linkNode, statusNode, label)
   resetQuickDownload(linkNode);
   setQuickStatus(statusNode, `Đang tạo file từ ${label}...`);
   try {
-    const response = await fetch("/api/giongnoi/media-download", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ url, format: "video" })
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data.error || `Không tải được ${label}.`);
-    }
-    const jobId = data.job_id;
+    const jobId = await createDownloadJob(url, "video");
     while (true) {
       const statusResponse = await fetch(`/api/status/${encodeURIComponent(jobId)}`);
       const statusData = await statusResponse.json().catch(() => ({}));
@@ -135,28 +141,18 @@ async function handleSubmit(event) {
   resetDownloadState();
   resultBox.textContent = "Đang xử lý link và tạo file audio...";
   resultBox.classList.add("is-empty");
-  setStatus("Đang tải từ link m3u8...", "");
+  setStatus("Đang tải từ link m3u8...");
   setProgress(0, "Đang tạo job");
 
   try {
-    const response = await fetch("/api/giongnoi/jobs", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        url,
-        format: formatInput.value,
-        filename: filenameInput.value.trim() || "zalo-audio-link"
-      })
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data.error || "Không thể tải audio từ link này.");
-    }
-    const finalData = await pollJob(data.job_id);
+    const jobId = await createDownloadJob(
+      url,
+      "audio",
+      filenameInput.value.trim() || "zalo-audio-link"
+    );
+    const finalData = await pollJob(jobId);
 
-    downloadLink.href = finalData.file_path;
+    downloadLink.href = `/api/file/${encodeURIComponent(jobId)}`;
     downloadLink.download = finalData.filename || `zalo-audio.${formatInput.value || "mp3"}`;
     downloadLink.classList.remove("disabled");
     downloadLink.removeAttribute("aria-disabled");
@@ -203,6 +199,6 @@ ytSubmit.addEventListener("click", () => startQuickDownload(ytUrl, ytSubmit, ytD
       handleSubmit();
     }
   } catch {
-    // Ignore bad query params.
+    // ignore
   }
 })();

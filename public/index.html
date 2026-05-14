@@ -1,1020 +1,123 @@
-﻿<!DOCTYPE html>
-<html lang="vi" class="scroll-smooth">
+<!doctype html>
+<html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="referrer" content="no-referrer" />
-  <title>Tải Video Facebook, TikTok, Jimeng, Douyin Không Watermark | Tienich.pro</title>
-  <meta name="description" content="Tải video Facebook, TikTok, Jimeng và Douyin nhanh trên Tienich.pro. Hỗ trợ chọn chất lượng cao, tải video không watermark khi nguồn hỗ trợ, kèm công cụ Facebook ID và 2FA online." />
-  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-  <link rel="canonical" href="https://www.tienich.pro/" />
-  <meta property="og:type" content="website" />
-  <meta property="og:locale" content="vi_VN" />
-  <meta property="og:site_name" content="Tienich.pro" />
-  <meta property="og:title" content="Tải Video Facebook, TikTok, Jimeng, Douyin Không Watermark | Tienich.pro" />
-  <meta property="og:description" content="Công cụ tải video đa nền tảng cho Facebook, TikTok, Jimeng và Douyin. Chọn chất lượng cao, tải nhanh, giao diện đơn giản trên mobile và desktop." />
-  <meta property="og:url" content="https://www.tienich.pro/" />
-  <meta property="og:image" content="https://www.tienich.pro/og-cover.svg" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Tải Video Facebook, TikTok, Jimeng, Douyin Không Watermark | Tienich.pro" />
-  <meta name="twitter:description" content="Tải video Facebook, TikTok, Jimeng và Douyin với chất lượng cao trên Tienich.pro." />
-  <meta name="twitter:image" content="https://www.tienich.pro/og-cover.svg" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    body {
-      background-color: #000000;
-      color: #e2e8f0;
-      font-family: 'Inter', sans-serif;
-      overflow-x: hidden;
-    }
-    .mystic-bg::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background:
-        radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.08) 0%, transparent 50%),
-        radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.08) 0%, transparent 50%);
-      z-index: -1;
-      pointer-events: none;
-    }
-    .glass-card {
-      background: rgba(20, 20, 20, 0.6);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .glass-card:hover {
-      transform: translateY(-3px);
-      border-color: rgba(139, 92, 246, 0.4);
-      background: rgba(30, 30, 35, 0.8);
-      box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.3);
-    }
-    .text-gradient-mystic {
-      background: linear-gradient(to right, #c084fc, #6366f1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      padding-bottom: 0.1em;
-    }
-    @keyframes pulse-green {
-      0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
-      70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
-    }
-    .led-active { animation: pulse-green 2s infinite; }
-    #progress-wrap { display: none; }
-    #progress-wrap.active { display: block; }
-    .ext-card {
-      background: linear-gradient(180deg, #0e1117 0%, #0b0e13 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
-      transition: all 0.25s ease;
-    }
-    .ext-card:hover {
-      transform: translateY(-3px);
-      border-color: rgba(139, 92, 246, 0.35);
-      box-shadow: 0 10px 28px rgba(59, 130, 246, 0.12);
-    }
-    .social-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 9999px;
-      background: #11151d;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: #94a3b8;
-      transition: all 0.2s ease;
-    }
-    .social-btn:hover {
-      color: #ffffff;
-      border-color: rgba(99, 102, 241, 0.5);
-      background: #171c27;
-    }
-    .stat-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: 9999px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: #0f131a;
-      color: #94a3b8;
-      font-size: 14px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    }
-    #download-best {
-      min-width: 220px;
-      min-height: 46px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 10px 24px rgba(79, 70, 229, 0.28);
-      letter-spacing: 0.2px;
-    }
-    #download-best[data-mode="ready"],
-    #download-best[data-mode="direct"] {
-      background: linear-gradient(90deg, #059669, #10b981) !important;
-      box-shadow: 0 10px 24px rgba(5, 150, 105, 0.3);
-    }
-    #download-best[data-mode="processing"] {
-      opacity: 0.82;
-      pointer-events: none;
-    }
-    #quality-list {
-      gap: 10px;
-      padding-top: 14px;
-    }
-    #quality-list a {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px 14px;
-      border-radius: 9999px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1;
-      white-space: nowrap;
-      text-decoration: none;
-      color: #fff;
-      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.35);
-    }
-    @keyframes float-card {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-4px); }
-      100% { transform: translateY(0px); }
-    }
-    @keyframes glow-sweep {
-      0% { transform: translateX(-120%); opacity: 0; }
-      20% { opacity: 0.14; }
-      100% { transform: translateX(220%); opacity: 0; }
-    }
-    .content-card {
-      background: rgba(9, 11, 18, 0.68);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 28px;
-      padding: 24px;
-    }
-    .content-card h2 {
-      font-size: 1.5rem;
-      line-height: 1.2;
-      margin-bottom: 12px;
-    }
-    .content-card h3 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #f8fafc;
-      margin-bottom: 8px;
-    }
-    .content-card p,
-    .content-card li {
-      color: #94a3b8;
-      line-height: 1.8;
-    }
-    .neo-card {
-      position: relative;
-      overflow: hidden;
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 24px;
-      padding: 22px;
-      box-shadow: 0 14px 40px rgba(2, 6, 23, 0.28);
-      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
-    }
-    .neo-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(105deg, transparent 25%, rgba(255,255,255,0.12) 50%, transparent 75%);
-      transform: translateX(-120%);
-      pointer-events: none;
-    }
-    .neo-card:hover {
-      transform: translateY(-6px);
-      border-color: rgba(167, 139, 250, 0.45);
-      box-shadow: 0 24px 50px rgba(76, 29, 149, 0.22);
-    }
-    .neo-card:hover::before {
-      animation: glow-sweep 1.15s ease;
-    }
-    .floaty {
-      animation: float-card 5s ease-in-out infinite;
-    }
-    .feature-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 18px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      margin-bottom: 14px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: linear-gradient(135deg, rgba(139,92,246,0.24), rgba(59,130,246,0.16));
-      color: #f8fafc;
-    }
-    .section-title {
-      font-size: clamp(1.8rem, 4vw, 2.4rem);
-      line-height: 1.1;
-      font-weight: 800;
-      color: #fff;
-      text-align: center;
-      margin-bottom: 14px;
-    }
-    .section-subtitle {
-      max-width: 760px;
-      margin: 0 auto 28px;
-      text-align: center;
-      color: #94a3b8;
-      line-height: 1.8;
-    }
-    .step-badge {
-      width: 52px;
-      height: 52px;
-      border-radius: 9999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 800;
-      color: #fff;
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-      box-shadow: 0 14px 30px rgba(79, 70, 229, 0.28);
-      margin-bottom: 16px;
-    }
-    .review-stars {
-      letter-spacing: 1px;
-      color: #f59e0b;
-      font-size: 18px;
-      margin-bottom: 12px;
-    }
-    .faq-item {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 0 18px;
-    }
-    .faq-item + .faq-item {
-      margin-top: 12px;
-    }
-    .faq-item summary {
-      list-style: none;
-      cursor: pointer;
-      padding: 18px 0;
-      font-weight: 700;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .faq-item summary::-webkit-details-marker {
-      display: none;
-    }
-    .faq-item p {
-      color: #94a3b8;
-      line-height: 1.8;
-      padding: 0 0 18px;
-      margin: 0;
-    }
-    .faq-item .faq-chevron {
-      transition: transform .2s ease;
-      color: #a78bfa;
-    }
-    .faq-item[open] .faq-chevron {
-      transform: rotate(180deg);
-    }
-    .section-divider {
-      width: min(760px, 100%);
-      height: 1px;
-      margin: 6px auto 26px;
-      background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.5), transparent);
-    }
-    .top-nav {
-      width: min(760px, 100%);
-      margin: 18px auto 0;
-      padding: 8px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border-radius: 9999px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(10, 13, 20, 0.9);
-      box-shadow: 0 20px 50px rgba(2, 6, 23, 0.32);
-    }
-    .top-nav a {
-      min-width: 132px;
-      padding: 12px 16px;
-      border-radius: 9999px;
-      text-align: center;
-      font-size: 15px;
-      font-weight: 700;
-      color: #a5b4fc;
-      transition: all .2s ease;
-    }
-    .top-nav a:hover {
-      color: #fff;
-      background: rgba(99, 102, 241, 0.16);
-    }
-    .top-nav a.is-active {
-      color: #fff;
-      background: linear-gradient(90deg, rgba(124,58,237,0.95), rgba(79,70,229,0.95));
-      box-shadow: 0 12px 28px rgba(79, 70, 229, 0.28);
-    }
-    .mobile-platform-nav {
-      width: 100%;
-      max-width: 460px;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin: 2px auto 28px;
-    }
-    .mobile-platform-nav a {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(13, 17, 26, 0.92);
-      box-shadow: 0 16px 36px rgba(2, 6, 23, 0.26);
-      transition: all .2s ease;
-    }
-    .mobile-platform-nav a:hover {
-      border-color: rgba(139, 92, 246, 0.35);
-      transform: translateY(-2px);
-    }
-    .mobile-platform-nav a.is-active {
-      border-color: rgba(129, 140, 248, 0.4);
-      background: linear-gradient(180deg, rgba(49, 46, 129, 0.58), rgba(17, 24, 39, 0.96));
-    }
-    .platform-thumb {
-      width: 42px;
-      height: 42px;
-      flex: 0 0 42px;
-      border-radius: 14px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: linear-gradient(135deg, rgba(124,58,237,0.9), rgba(59,130,246,0.78));
-    }
-    .platform-thumb.facebook {
-      background: linear-gradient(135deg, #1877f2, #2563eb);
-    }
-    .platform-thumb.tiktok {
-      background: linear-gradient(135deg, #111827, #ef4444);
-    }
-    .platform-thumb.jimeng {
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-    }
-    .platform-copy strong {
-      display: block;
-      color: #fff;
-      font-size: 14px;
-      line-height: 1.2;
-    }
-    .platform-copy span {
-      display: block;
-      margin-top: 3px;
-      font-size: 12px;
-      color: #94a3b8;
-      line-height: 1.35;
-    }
-    @media (min-width: 768px) {
-      .top-nav {
-        display: flex;
-      }
-      .mobile-platform-nav {
-        display: none;
-      }
-    }
-  </style>
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "WebSite",
-          "@id": "https://www.tienich.pro/#website",
-          "url": "https://www.tienich.pro/",
-          "name": "Tienich.pro",
-          "inLanguage": "vi",
-          "description": "Công cụ tải video Facebook, TikTok, Jimeng và Douyin cùng các tiện ích online khác."
-        },
-        {
-          "@type": "Organization",
-          "@id": "https://www.tienich.pro/#organization",
-          "name": "Tienich.pro",
-          "url": "https://www.tienich.pro/",
-          "logo": {
-            "@type": "ImageObject",
-            "url": "https://www.tienich.pro/og-cover.svg"
-          }
-        },
-        {
-          "@type": "SoftwareApplication",
-          "name": "Tienich.pro Video Downloader",
-          "applicationCategory": "UtilitiesApplication",
-          "operatingSystem": "Web",
-          "url": "https://www.tienich.pro/",
-          "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "VND"
-          },
-          "featureList": [
-            "Tải video Facebook",
-            "Tải video TikTok",
-            "Tải video Jimeng",
-            "Tải video Douyin",
-            "Tra cứu Facebook ID",
-            "Tạo mã 2FA trực tiếp"
-          ]
-        }
-      ]
-    }
-  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tải Audio M3U8 Zalo | Lê Đại</title>
+  <meta name="description" content="Dán link M3U8 từ Zalo để tải audio về máy, kèm khu tải nhanh Facebook, TikTok và YouTube.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/giongnoi/styles.css">
 </head>
-  <body class="mystic-bg min-h-screen flex flex-col" data-page="home">
-  <header class="w-full max-w-7xl mx-auto px-4 py-6 relative z-10">
-    <div class="flex items-center justify-center gap-3">
-      <a href="/" class="flex items-center justify-center gap-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
-          <i class="fas fa-cube text-white text-lg"></i>
+<body>
+  <main class="page">
+    <section class="card">
+      <div class="intro">
+        <p class="eyebrow">Zalo M3U8 Downloader</p>
+        <h1>Dán link <code>.m3u8</code> rồi tải audio về máy</h1>
+        <p class="intro-copy">
+          Trang này chỉ làm một việc: nhận link audio <code>.m3u8</code> từ Zalo hoặc Zalo Storage,
+          dùng server xử lý và trả về file tải xuống.
+        </p>
+        <ul class="tips">
+          <li>Chỉ cần dán playlist <code>.m3u8</code>, không cần segment nhỏ.</li>
+          <li>Link phải còn hạn <code>expires</code> hoặc <code>authen</code>.</li>
+          <li>Hỗ trợ đầu ra <strong>MP3</strong>, <strong>WAV</strong>, <strong>AAC</strong>.</li>
+        </ul>
+        <p class="credit">Phát triển bởi Lê Đại</p>
+      </div>
+
+      <form id="m3u8-form" class="panel">
+        <label class="label" for="m3u8-url">Link <code>.m3u8</code></label>
+        <textarea
+          id="m3u8-url"
+          rows="8"
+          placeholder="https://s9-zstorage.zdn.vn/...m3u8?authen=..."
+          required
+        ></textarea>
+
+        <div class="grid">
+          <label class="field">
+            <span>Định dạng tải</span>
+            <select id="m3u8-format">
+              <option value="mp3" selected>MP3</option>
+              <option value="wav">WAV</option>
+              <option value="aac">AAC</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Tên file</span>
+            <input id="m3u8-filename" type="text" value="zalo-audio-link">
+          </label>
         </div>
-        <div class="flex flex-col items-start">
-          <span class="font-bold text-xl tracking-tight text-white">TIENICH<span class="text-violet-500">.PRO</span></span>
-          <span class="text-[10px] text-slate-500 tracking-wider uppercase font-medium">download all video</span>
+
+        <div class="actions">
+          <button id="m3u8-submit" type="submit">Tải từ link</button>
+          <a id="m3u8-download-link" class="download-link disabled" href="#" download>Tải file đã xử lý</a>
         </div>
-      </a>
-    </div>
-    <nav class="top-nav" aria-label="Menu nền tảng">
-      <a href="/" data-nav="home">Trang chủ</a>
-      <a href="/facebook-downloader.html" data-nav="facebook">Facebook</a>
-      <a href="/tiktok-downloader.html" data-nav="tiktok">TikTok</a>
-      <a href="/jimeng-downloader.html" data-nav="jimeng">Jimeng AI</a>
-    </nav>
-  </header>
 
-  <main class="flex-grow w-full max-w-7xl mx-auto px-4 pt-8 md:pt-12 pb-20 flex flex-col items-center relative z-10">
-    <h1 class="text-4xl md:text-5xl font-extrabold text-center tracking-tight text-white mb-4">
-      Tải Video <span class="text-gradient-mystic">Đa Nền Tảng</span>
-    </h1>
-    <p class="text-slate-400 text-sm md:text-base text-center max-w-2xl leading-relaxed mb-8">
-      Hỗ trợ tải từ Facebook, TikTok, Jimeng và Douyin. Tự động chọn chất lượng cao nhất và tải nhanh.
-    </p>
-
-    <nav class="mobile-platform-nav" aria-label="Menu nền tảng mobile">
-      <a href="/" data-nav="home">
-        <span class="platform-thumb"><i class="fas fa-house"></i></span>
-        <span class="platform-copy">
-          <strong>Trang chủ</strong>
-          <span>Tổng hợp mọi công cụ</span>
-        </span>
-      </a>
-      <a href="/facebook-downloader.html" data-nav="facebook">
-        <span class="platform-thumb facebook"><i class="fab fa-facebook-f"></i></span>
-        <span class="platform-copy">
-          <strong>Facebook</strong>
-          <span>Tải reel, watch, video</span>
-        </span>
-      </a>
-      <a href="/tiktok-downloader.html" data-nav="tiktok">
-        <span class="platform-thumb tiktok"><i class="fab fa-tiktok"></i></span>
-        <span class="platform-copy">
-          <strong>TikTok</strong>
-          <span>Tải nhanh không watermark</span>
-        </span>
-      </a>
-      <a href="/jimeng-downloader.html" data-nav="jimeng">
-        <span class="platform-thumb jimeng"><i class="fas fa-wand-magic-sparkles"></i></span>
-        <span class="platform-copy">
-          <strong>Jimeng AI</strong>
-          <span>Link Seedance, preview rõ</span>
-        </span>
-      </a>
-    </nav>
-
-    <section class="w-full max-w-4xl glass-card rounded-3xl p-5 md:p-6 mb-8">
-      <form id="download-form" class="w-full">
-        <div class="flex flex-col md:flex-row gap-3">
-          <div class="flex-1 flex items-center bg-black rounded-2xl border border-white/10 px-4">
-            <i class="fas fa-link text-slate-500"></i>
-            <input id="url" name="url" type="text" autocomplete="off" required
-              placeholder="Dán link Facebook / TikTok / Jimeng / Douyin..."
-              class="w-full bg-transparent px-3 py-4 text-sm text-white placeholder:text-slate-500 outline-none" />
-            <button type="button" class="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300 text-xs font-semibold hover:bg-violet-500/30 transition"
-              onclick="navigator.clipboard.readText().then(text => document.getElementById('url').value = text)">
-              Dán
-            </button>
+        <div class="progress-card">
+          <div class="progress-top">
+            <strong id="m3u8-progress-label">Tiến độ xử lý</strong>
+            <span id="m3u8-progress-value">0%</span>
           </div>
-          <button id="submit-btn" type="submit"
-            class="h-12 px-7 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold hover:opacity-90 transition">
-            Tải Ngay
-          </button>
+          <div class="progress-bar">
+            <div id="m3u8-progress-fill" class="progress-fill"></div>
+          </div>
         </div>
+
+        <div id="m3u8-result" class="result is-empty">
+          Chưa có file nào được tạo.
+        </div>
+
+        <p id="m3u8-status" class="status">Dán link <code>.m3u8</code> rồi bấm tải.</p>
       </form>
 
-      <p id="status" class="mt-4 text-sm text-yellow-400 min-h-[20px]" aria-live="polite"></p>
+      <section class="panel extra-panel">
+        <h2 class="subhead">Tải nhanh Facebook / TikTok / YouTube</h2>
+        <div class="quick-grid">
+          <article class="quick-card">
+            <label class="field">
+              <span>Facebook link</span>
+              <input id="fb-url" type="text" placeholder="https://facebook.com/...">
+            </label>
+            <div class="actions compact">
+              <button id="fb-submit" type="button">Tải Facebook</button>
+              <a id="fb-download" class="download-link disabled" href="#" download>Tải file</a>
+            </div>
+            <p id="fb-status" class="status">Dán link rồi bấm tải.</p>
+          </article>
 
-      <div class="mt-3" id="progress-wrap">
-        <div class="w-full h-2.5 bg-[#111827] border border-slate-700 rounded-full overflow-hidden">
-          <div id="progress-bar" class="h-full w-0 bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-300"></div>
+          <article class="quick-card">
+            <label class="field">
+              <span>TikTok link</span>
+              <input id="tt-url" type="text" placeholder="https://www.tiktok.com/...">
+            </label>
+            <div class="actions compact">
+              <button id="tt-submit" type="button">Tải TikTok</button>
+              <a id="tt-download" class="download-link disabled" href="#" download>Tải file</a>
+            </div>
+            <p id="tt-status" class="status">Dán link rồi bấm tải.</p>
+          </article>
+
+          <article class="quick-card">
+            <label class="field">
+              <span>YouTube link</span>
+              <input id="yt-url" type="text" placeholder="https://youtube.com/watch?v=...">
+            </label>
+            <div class="actions compact">
+              <button id="yt-submit" type="button">Tải YouTube</button>
+              <a id="yt-download" class="download-link disabled" href="#" download>Tải file</a>
+            </div>
+            <p id="yt-status" class="status">Dán link rồi bấm tải.</p>
+          </article>
         </div>
-        <p id="progress-label" class="mt-2 text-xs text-slate-400">Đang chờ xử lý...</p>
-      </div>
-    </section>
-
-        <section id="result" class="w-full max-w-4xl hidden mb-8">
-      <article class="glass-card rounded-3xl p-5 md:p-6 flex flex-col md:flex-row gap-5">
-        <img id="cover" alt="Video thumbnail" class="w-full md:w-48 h-48 object-cover rounded-2xl bg-black" />
-        <div class="flex-1">
-          <p id="item-id" class="text-xs text-slate-400 mb-2 font-mono"></p>
-          <h2 id="title" class="text-white text-lg md:text-xl font-semibold mb-4"></h2>
-          <a id="download-best" href="#" target="_blank" rel="noopener"
-            class="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold mb-4">
-            Xử lý HD
-          </a>
-          <div id="quality-list" class="pt-4 border-t border-white/10 flex flex-wrap gap-2"></div>
-        </div>
-      </article>
-    </section>
-
-
-    <section class="w-full max-w-6xl mb-8">
-      <div class="section-divider"></div>
-      <h2 class="section-title">Hướng Dẫn Sử Dụng</h2>
-      <p class="section-subtitle">
-        Chỉ cần 3 bước để dán link, phân tích nguồn và tải file video về máy.
-      </p>
-      <div class="grid md:grid-cols-3 gap-4">
-        <article class="neo-card text-center">
-          <div class="step-badge">1</div>
-          <h3 class="text-white text-2xl font-bold mb-2">Sao Chép Link Video</h3>
-          <p class="text-slate-400 leading-7">Copy link Facebook, TikTok, Jimeng hoặc Douyin từ ứng dụng hay trình duyệt.</p>
-        </article>
-        <article class="neo-card text-center">
-          <div class="step-badge">2</div>
-          <h3 class="text-white text-2xl font-bold mb-2">Dán Vào Ô Tải</h3>
-          <p class="text-slate-400 leading-7">Dán link vào ô nhập phía trên để hệ thống tự nhận diện nền tảng và phân tích nguồn.</p>
-        </article>
-        <article class="neo-card text-center">
-          <div class="step-badge">3</div>
-          <h3 class="text-white text-2xl font-bold mb-2">Chọn Bản Phù Hợp</h3>
-          <p class="text-slate-400 leading-7">Bấm tải bản tốt nhất hoặc chọn đúng mức chất lượng bạn muốn lưu về máy.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="w-full max-w-6xl pt-2 mb-8">
-      <div class="section-divider"></div>
-      <h3 class="text-center text-3xl font-extrabold text-white mb-8 tracking-tight uppercase">TIỆN ÍCH MỞ RỘNG</h3>
-      <div class="flex flex-wrap justify-center gap-4">
-        <a href="https://tts.tienich.pro/" target="_blank" class="ext-card p-5 text-center w-[180px]">
-          <i class="fas fa-volume-high text-4xl text-green-400 mb-3"></i>
-          <p class="text-slate-200 font-semibold text-sm">Text to Speech</p>
-        </a>
-        <a href="https://nano.anhdep.info/" target="_blank" class="ext-card p-5 text-center w-[180px]">
-          <i class="fas fa-pen text-4xl text-pink-400 mb-3"></i>
-          <p class="text-slate-200 font-semibold text-sm">AI Photo Editor</p>
-        </a>
-        <a href="https://xemtuong.tienich.pro/" target="_blank" class="ext-card p-5 text-center w-[180px]">
-          <i class="fas fa-eye text-4xl text-orange-400 mb-3"></i>
-          <p class="text-slate-200 font-semibold text-sm">Xem Tướng Online</p>
-        </a>
-        <a href="https://chuinhau.xyz/" target="_blank" class="ext-card p-5 text-center w-[180px]">
-          <i class="fas fa-fire-flame-curved text-4xl text-red-500 mb-3"></i>
-          <p class="text-slate-200 font-semibold text-sm">Cãi Nhau Thuê</p>
-        </a>
-      </div>
-
-      <div class="grid md:grid-cols-2 gap-4 mt-6">
-        <div class="ext-card p-5">
-          <div class="flex items-center gap-3 mb-4">
-            <i class="fas fa-id-card text-blue-400 text-xl"></i>
-            <h4 class="text-white font-bold text-lg">Truy Vấn Facebook ID</h4>
-          </div>
-          <form id="fbid-form" class="space-y-3">
-            <input
-              id="fbid-input"
-              type="text"
-              placeholder="Dán link profile Facebook..."
-              class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
-            />
-            <button
-              id="fbid-btn"
-              type="submit"
-              class="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:opacity-90 transition"
-            >
-              Lấy Facebook ID
-            </button>
-          </form>
-          <p id="fbid-result" class="mt-3 text-sm text-slate-300 min-h-[20px]"></p>
-          <button
-            id="fbid-copy"
-            type="button"
-            class="hidden w-full h-11 mt-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold hover:opacity-90 transition"
-          >
-            Copy Facebook ID
-          </button>
-        </div>
-
-        <div class="ext-card p-5">
-          <div class="flex items-center gap-3 mb-4">
-            <i class="fas fa-shield-halved text-yellow-400 text-xl"></i>
-            <h4 class="text-white font-bold text-lg">Mã 2FA Trực Tiếp</h4>
-          </div>
-          <div class="space-y-3">
-            <input
-              id="totp-secret"
-              type="text"
-              placeholder="Nhập secret key Google Authenticator (Base32)..."
-              class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
-            />
-            <div class="flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3">
-              <div>
-                <p class="text-slate-400 text-xs">Mã hiện tại</p>
-                <p id="totp-code" class="text-2xl font-extrabold tracking-[0.2em] text-green-400">------</p>
-              </div>
-              <div class="text-right">
-                <p class="text-slate-400 text-xs">Làm mới sau</p>
-                <p id="totp-timer" class="text-lg font-bold text-white">--s</p>
-              </div>
-            </div>
-            <button
-              id="totp-copy"
-              type="button"
-              class="w-full h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold hover:opacity-90 transition"
-            >
-              Copy Mã 2FA
-            </button>
-            <p id="totp-status" class="text-sm text-slate-300 min-h-[20px]"></p>
-          </div>
-        </div>
-      </div>
-
-      <details class="ext-card mt-6 max-w-3xl mx-auto w-full group">
-        <summary class="list-none cursor-pointer p-4 md:p-5 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <i class="fas fa-bolt text-red-400 text-xl"></i>
-            <div>
-              <h4 class="text-white font-bold text-lg">Công Cụ Tính Tiền Điện Online</h4>
-              <p class="text-slate-400 text-sm">Bấm để mở công cụ tính tiền điện.</p>
-            </div>
-          </div>
-          <i class="fas fa-chevron-down text-slate-400 transition-transform duration-200 group-open:rotate-180"></i>
-        </summary>
-        <div class="px-4 md:px-5 pb-5">
-          <form id="electricity-form" class="space-y-4">
-            <div class="flex flex-col md:flex-row gap-3">
-              <input
-                id="electricity-kwh"
-                type="number"
-                min="1"
-                step="1"
-                placeholder="Nhập tổng điện năng tiêu thụ (kWh)"
-                class="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none"
-              />
-              <button
-                type="submit"
-                class="h-11 px-6 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold hover:opacity-90 transition"
-              >
-                Tính Ngay
-              </button>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 block mb-1">VAT (%)</label>
-                <input
-                  id="electricity-vat-rate"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value="8"
-                  class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                />
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 block mb-1">Phụ phí khác (đ, tuỳ chọn)</label>
-                <input
-                  id="electricity-extra-fee"
-                  type="number"
-                  min="0"
-                  step="100"
-                  value="0"
-                  class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                />
-              </div>
-            </div>
-          </form>
-
-          <div id="electricity-result" class="mt-4 bg-black/30 border border-emerald-400/40 rounded-2xl p-4">
-            <div class="flex items-center justify-between py-1">
-              <span class="text-slate-300">Tiền điện (chưa VAT):</span>
-              <strong id="electricity-before-vat" class="text-emerald-300 text-lg">0 đ</strong>
-            </div>
-            <div class="flex items-center justify-between py-1">
-              <span class="text-slate-300">Thuế GTGT:</span>
-              <strong id="electricity-vat" class="text-slate-200">0 đ</strong>
-            </div>
-            <div class="flex items-center justify-between py-1">
-              <span class="text-slate-300">Phụ phí khác:</span>
-              <strong id="electricity-extra" class="text-slate-200">0 đ</strong>
-            </div>
-            <div class="h-px w-full bg-emerald-400/30 my-2"></div>
-            <div class="flex items-center justify-between py-1">
-              <span class="text-emerald-200 text-lg font-bold uppercase">Tổng Cộng Phải Trả:</span>
-              <strong id="electricity-total" class="text-emerald-400 text-2xl md:text-3xl font-extrabold">0 đ</strong>
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <p class="text-white font-semibold mb-2">Chi tiết tính toán:</p>
-            <div id="electricity-breakdown" class="space-y-2 text-sm"></div>
-            <p class="text-xs text-slate-500 mt-3">
-              Lưu ý: Hoá đơn thực tế có thể chênh do làm tròn, tiền dịch vụ hoặc phụ phí địa phương.
-            </p>
-          </div>
-        </div>
-      </details>
-    </section>
-
-    <section class="w-full max-w-6xl mb-8">
-      <div class="section-divider"></div>
-      <h2 class="section-title">Người Dùng Đánh Giá</h2>
-      <p class="section-subtitle">
-        Một số phản hồi ngắn giúp trang nhìn có độ tin cậy hơn mà không làm bố cục bị nặng chữ.
-      </p>
-      <div class="grid md:grid-cols-3 gap-4">
-        <article class="neo-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="italic text-slate-300 mb-4">"Mình chỉ cần dán link là hệ thống tự hiểu. Phần chọn chất lượng rất rõ và dễ bấm trên điện thoại."</p>
-          <div class="text-white font-semibold">Nguyễn Minh Khang</div>
-          <div class="text-slate-500 text-sm">Content Creator</div>
-        </article>
-        <article class="neo-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="italic text-slate-300 mb-4">"Giao diện đỡ rối hơn bản cũ. Khối hướng dẫn 3 bước và tiện ích đặt gần đầu trang nhìn chuyên nghiệp hơn."</p>
-          <div class="text-white font-semibold" data-random-reviewer>Tên ngẫu nhiên</div>
-          <div class="text-slate-500 text-sm" data-random-role>Video Editor</div>
-        </article>
-        <article class="neo-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="italic text-slate-300 mb-4">"Mình thích phần Facebook ID và 2FA nằm chung một khu. Cảm giác đây là một bộ tool đầy đủ chứ không chỉ là trang tải video."</p>
-          <div class="text-white font-semibold">Lê Hoàng Nam</div>
-          <div class="text-slate-500 text-sm">Freelancer</div>
-        </article>
-      </div>
-    </section>
-
-    <section class="w-full max-w-5xl mb-10">
-      <div class="section-divider"></div>
-      <div class="neo-card">
-      <h2 class="section-title mb-2">Câu Hỏi Thường Gặp</h2>
-      <p class="section-subtitle mb-6">
-        Tập trung vào những câu hỏi người dùng hay tìm trước khi tải video Facebook, TikTok, Jimeng hoặc Douyin.
-      </p>
-      <details class="faq-item" open>
-        <summary>
-          <span>Tienich.pro dùng để làm gì?</span>
-          <i class="fas fa-chevron-down faq-chevron"></i>
-        </summary>
-        <p>Tienich.pro là công cụ tải video cho Facebook, TikTok, Jimeng và Douyin. Người dùng chỉ cần dán link công khai, hệ thống sẽ phân tích nguồn và hiển thị bản tải phù hợp theo chất lượng có sẵn.</p>
-      </details>
-      <details class="faq-item">
-        <summary>
-          <span>Cách tải video Facebook, TikTok, Jimeng hoặc Douyin nhanh nhất?</span>
-          <i class="fas fa-chevron-down faq-chevron"></i>
-        </summary>
-        <p>Cách nhanh nhất là sao chép link video công khai, dán vào ô nhập ở đầu trang, chờ hệ thống resolve xong rồi bấm tải bản tốt nhất. Với một số nguồn tách riêng audio và video, trang sẽ xử lý ghép file trước khi tải.</p>
-      </details>
-      <details class="faq-item">
-        <summary>
-          <span>Vì sao một số link Facebook xử lý chậm hơn?</span>
-          <i class="fas fa-chevron-down faq-chevron"></i>
-        </summary>
-        <p>Facebook thường có nhiều lớp redirect, share link và dạng URL khác nhau như watch, reel hoặc videos. Với các link không phải dạng trực tiếp, hệ thống cần thêm bước dò nguồn nên thời gian phản hồi có thể lâu hơn TikTok.</p>
-      </details>
-      <details class="faq-item">
-        <summary>
-          <span>Có phải video nào cũng tải được bản không watermark?</span>
-          <i class="fas fa-chevron-down faq-chevron"></i>
-        </summary>
-        <p>Không. Điều này phụ thuộc vào dữ liệu mà nền tảng nguồn trả về tại thời điểm xử lý. Hệ thống luôn ưu tiên bản sạch và bản chất lượng cao nhất nếu upstream cho phép.</p>
-      </details>
-      <details class="faq-item">
-        <summary>
-          <span>Khi nào Jimeng hoặc Douyin không tải được?</span>
-          <i class="fas fa-chevron-down faq-chevron"></i>
-        </summary>
-        <p>Những link đã hết hạn, video riêng tư, video chưa công khai hoặc lúc gateway upstream thay đổi đều có thể khiến việc resolve thất bại tạm thời. Khi đó bạn nên lấy lại link mới hoặc thử lại sau.</p>
-      </details>
-      <details class="faq-item">
-        <summary>
-          <span>Công cụ này có miễn phí không?</span>
-          <i class="fas fa-chevron-down faq-chevron"></i>
-        </summary>
-        <p>Trang hiện được thiết kế theo hướng miễn phí cho người dùng cuối. Một số trường hợp cần thêm bước xử lý HD hoặc ghép tiếng thì thời gian chờ có thể dài hơn tùy tài nguyên máy chủ.</p>
-      </details>
-      <details class="faq-item">
-        <summary>
-          <span>Ngoài tải video còn có gì khác?</span>
-          <i class="fas fa-chevron-down faq-chevron"></i>
-        </summary>
-        <p>Ngoài công cụ tải video, trang còn có truy vấn Facebook ID, tạo mã 2FA trực tiếp, tính tiền điện và các tiện ích mở rộng khác như Text to Speech, AI Photo Editor hoặc Xem Tướng Online.</p>
-      </details>
-      </div>
+      </section>
     </section>
   </main>
 
-  <footer class="w-full border-t border-white/5 py-12 mt-6">
-    <div class="max-w-6xl mx-auto px-4">
-      <div class="grid md:grid-cols-3 gap-6 items-center mb-8">
-        <div class="text-center md:text-left">
-          <div class="text-3xl font-extrabold tracking-tight text-white">TIENICH<span class="text-violet-500">.PRO</span></div>
-          <p class="text-slate-500 mt-2">© 2026 All rights reserved.</p>
-        </div>
-        <div class="flex justify-center gap-3">
-          <a class="social-btn" href="#"><i class="fab fa-facebook-f"></i></a>
-          <a class="social-btn" href="#"><i class="fab fa-tiktok"></i></a>
-        </div>
-        <div class="flex justify-center md:justify-end gap-6 text-slate-400">
-          <button type="button" onclick="showModal('contact')" class="hover:text-white">Liên hệ</button>
-          <button type="button" onclick="showModal('terms')" class="hover:text-white">Điều khoản</button>
-          <button type="button" onclick="showModal('policy')" class="hover:text-white">Chính sách</button>
-        </div>
-      </div>
-      <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row justify-center gap-4">
-        <div class="stat-pill">
-          <span class="w-2.5 h-2.5 rounded-full bg-green-400 led-active"></span>
-          <span>Đang Online:</span>
-          <strong id="online-count" class="text-white">1</strong>
-        </div>
-        <div class="stat-pill">
-          <i class="fas fa-chart-simple text-blue-400 text-xs"></i>
-          <span>Tổng truy cập:</span>
-          <strong id="total-visits" class="text-white">5.182</strong>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <div id="infoModal" class="fixed inset-0 z-[110] hidden flex items-center justify-center px-4">
-    <div id="modalBackdrop" class="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity duration-300 opacity-0" onclick="closeModal()"></div>
-    <div id="modalContent" class="bg-[#111] border border-white/10 rounded-3xl max-w-md w-full p-6 relative transform scale-95 transition-all duration-300 opacity-0 z-10 shadow-2xl shadow-violet-900/10">
-      <button onclick="closeModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors">
-        <i class="fas fa-times text-sm"></i>
-      </button>
-      <h3 id="modalTitle" class="text-xl font-bold text-white mb-4">Tiêu đề</h3>
-      <div class="h-px w-full bg-gradient-to-r from-violet-500/50 to-transparent mb-4"></div>
-      <div id="modalBody" class="text-slate-300 text-sm leading-7 max-h-[60vh] overflow-y-auto pr-2"></div>
-      <div class="mt-6 pt-4 border-t border-white/5 flex justify-end">
-        <button onclick="closeModal()" class="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-colors">Đóng</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="/app.js"></script>
-  <script>
-    const modal = document.getElementById("infoModal");
-    const modalBackdrop = document.getElementById("modalBackdrop");
-    const modalContent = document.getElementById("modalContent");
-    const modalTitle = document.getElementById("modalTitle");
-    const modalBody = document.getElementById("modalBody");
-
-    const contentData = {
-      contact: {
-        title: "Liên Hệ Hỗ Trợ",
-        body: `
-          <div class="space-y-4">
-            <p>Chúng tôi luôn sẵn sàng lắng nghe ý kiến đóng góp của bạn.</p>
-            <div class="bg-[#18181b] p-4 rounded-xl border border-white/5">
-              <div class="flex items-center gap-3 mb-2">
-                <i class="fas fa-envelope text-violet-400"></i>
-                <span class="text-white">support@tienich.pro</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <i class="fab fa-telegram text-blue-400"></i>
-                <span class="text-white">@tienich_support</span>
-              </div>
-            </div>
-            <p class="text-xs text-slate-500">Thời gian phản hồi: 8:00 - 17:00 (Thứ 2 - Thứ 6).</p>
-          </div>
-        `
-      },
-      terms: {
-        title: "Điều Khoản",
-        body: `
-          <ul class="space-y-3 list-disc pl-4 marker:text-violet-500">
-            <li>Dịch vụ miễn phí và phục vụ mục đích cá nhân.</li>
-            <li>Chúng tôi không lưu trữ video trên máy chủ.</li>
-            <li>Người dùng chịu trách nhiệm bản quyền nội dung tải xuống.</li>
-            <li>Nghiêm cấm sử dụng công cụ cho mục đích vi phạm pháp luật.</li>
-          </ul>
-        `
-      },
-      policy: {
-        title: "Chính Sách Bảo Mật",
-        body: `
-          <ul class="space-y-3 list-disc pl-4 marker:text-green-500">
-            <li><strong>Không thu thập tài khoản:</strong> Không yêu cầu đăng ký đăng nhập.</li>
-            <li><strong>Ẩn danh:</strong> Link xử lý theo phiên, không lưu lịch sử cá nhân.</li>
-            <li><strong>Cookie kỹ thuật:</strong> Chỉ dùng cookie tối thiểu để duy trì hoạt động web.</li>
-          </ul>
-        `
-      }
-    };
-
-    function showModal(type) {
-      const data = contentData[type];
-      if (!data) return;
-      modalTitle.innerText = data.title;
-      modalBody.innerHTML = data.body;
-      modal.classList.remove("hidden");
-      requestAnimationFrame(() => {
-        modalBackdrop.classList.remove("opacity-0");
-        modalContent.classList.remove("opacity-0", "scale-95");
-      });
-    }
-
-    function closeModal() {
-      modalBackdrop.classList.add("opacity-0");
-      modalContent.classList.add("opacity-0", "scale-95");
-      setTimeout(() => modal.classList.add("hidden"), 300);
-    }
-  </script>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, onSnapshot, setDoc, increment, serverTimestamp, collection, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyA_OEs3JrPE7H39-oL94Upwez9jxaY4Td4",
-      authDomain: "cuu-ho.firebaseapp.com",
-      projectId: "cuu-ho",
-      storageBucket: "cuu-ho.firebasestorage.app",
-      messagingSenderId: "406781366615",
-      appId: "1:406781366615:web:105b0b9893b60880cdee12",
-      measurementId: "G-V0WWBF00VJ"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const elTotal = document.getElementById("total-visits");
-    const elOnline = document.getElementById("online-count");
-
-    async function initAnalytics() {
-      try {
-        const userCredential = await signInAnonymously(auth);
-        const uid = userCredential.user.uid;
-
-        const totalRef = doc(db, "site_stats", "general");
-        setDoc(totalRef, { visits: increment(1) }, { merge: true });
-        onSnapshot(totalRef, (snap) => {
-          if (snap.exists()) {
-            elTotal.innerText = new Intl.NumberFormat("vi-VN").format(snap.data().visits || 0);
-          }
-        });
-
-        const sessionRef = doc(db, "active_sessions", uid);
-        const heartbeat = async () => {
-          await setDoc(sessionRef, { last_seen: serverTimestamp(), device: navigator.userAgent }, { merge: true });
-        };
-        await heartbeat();
-        setInterval(heartbeat, 60000);
-        window.addEventListener("beforeunload", () => deleteDoc(sessionRef));
-
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-        const q = query(collection(db, "active_sessions"), where("last_seen", ">", fiveMinutesAgo));
-        onSnapshot(q, (snapshot) => {
-          let count = snapshot.size;
-          if (count < 1) count = 1;
-          elOnline.innerText = String(count);
-        }, () => {
-          elOnline.innerText = "1";
-        });
-      } catch {
-        elTotal.innerText = "---";
-        elOnline.innerText = "---";
-      }
-    }
-
-    initAnalytics();
-  </script>
+  <script src="/giongnoi/app.js" defer></script>
 </body>
 </html>
-
