@@ -442,6 +442,13 @@ function getJob(id) {
   return job;
 }
 
+function getJobByKind(id, kind = "") {
+  const job = getJob(id);
+  if (!job) return null;
+  if (!kind) return job;
+  return job.kind === kind ? job : null;
+}
+
 function setJobProgress(job, progress, stage) {
   job.progress = Math.max(0, Math.min(100, Math.floor(progress)));
   if (stage) job.stage = stage;
@@ -2830,6 +2837,129 @@ function sanitizeFilename(input) {
   return /^tienich\.pro_/i.test(withExt) ? withExt : `tienich.pro_${withExt}`;
 }
 
+function sanitizeLooseFilename(input, fallbackBase = "zalo-audio-link") {
+  const raw = String(input || "").trim();
+  const cleaned = (raw || fallbackBase).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").slice(0, 120).trim();
+  return cleaned || fallbackBase;
+}
+
+function sanitizeAudioFilename(input, format = "mp3") {
+  const ext = String(format || "mp3").toLowerCase();
+  const base = sanitizeLooseFilename(input, "zalo-audio-link").replace(/\.(mp3|wav|aac)$/i, "");
+  return `${base}.${ext}`;
+}
+
+function isAllowedGiongNoiHostname(hostname) {
+  const host = String(hostname || "").toLowerCase();
+  return host.endsWith(".tts.zalo.ai") || host.endsWith(".zdn.vn");
+}
+
+function getAudioMimeType(ext) {
+  const value = String(ext || "").toLowerCase();
+  if (value === "wav") return "audio/wav";
+  if (value === "aac") return "audio/aac";
+  return "audio/mpeg";
+}
+
+async function estimateM3u8DurationSeconds(sourceUrl) {
+  try {
+    const response = await fetch(sourceUrl, {
+      method: "GET",
+      headers: buildSourceHeaders(sourceUrl),
+      redirect: "follow"
+    });
+    if (!response.ok) return 0;
+    const text = await response.text();
+    let total = 0;
+    for (const line of String(text || "").split(/\r?\n/)) {
+      const match = line.match(/^#EXTINF:([\d.]+)/i);
+      if (match) total += Number(match[1] || 0);
+    }
+    return Number.isFinite(total) ? total : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function parseFfmpegTimeToSeconds(text) {
+  const match = String(text || "").match(/time=\s*(\d+):(\d+):(\d+(?:\.\d+)?)/i);
+  if (!match) return 0;
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+  return (hours * 3600) + (minutes * 60) + seconds;
+}
+
+async function runGiongNoiFfmpegJob(job) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "giongnoi-job-"));
+  const filename = sanitizeAudioFilename(job.filename, job.format);
+  const outputPath = path.join(tempDir, filename);
+
+  job.tempDir = tempDir;
+  job.outputPath = outputPath;
+  job.filename = filename;
+  job.status = "processing";
+  setJobProgress(job, 2, "Đang chuẩn bị");
+
+  if (!hasFfmpeg()) {
+    throw createHttpError(501, "Máy chủ chưa có ffmpeg.");
+  }
+
+  const durationSeconds = await estimateM3u8DurationSeconds(job.sourceUrl);
+  setJobProgress(job, 8, "Đang tải playlist audio");
+
+  await new Promise((resolve, reject) => {
+    const args = [
+      "-y",
+      "-protocol_whitelist", "file,http,https,tcp,tls,crypto,httpproxy",
+      "-allowed_extensions", "ALL",
+      "-allowed_segment_extensions", "ALL",
+      "-extension_picky", "0",
+      "-headers", "Referer: https://ai.zalo.solutions/products/text-to-audio-converter\r\nUser-Agent: Mozilla/5.0\r\n",
+      "-i", job.sourceUrl,
+      "-vn"
+    ];
+
+    if (job.format === "wav") {
+      args.push("-c:a", "pcm_s16le");
+    } else if (job.format === "aac") {
+      args.push("-c:a", "aac", "-b:a", "192k");
+    } else {
+      args.push("-c:a", "libmp3lame", "-b:a", "192k");
+    }
+
+    args.push(outputPath);
+
+    const proc = spawn(ffmpegExecutable, args, { windowsHide: true });
+    let stderr = "";
+
+    proc.stderr.on("data", (chunk) => {
+      const line = String(chunk || "");
+      stderr += line;
+      const processedSeconds = parseFfmpegTimeToSeconds(line);
+      if (durationSeconds > 0 && processedSeconds > 0) {
+        const ratio = Math.max(0, Math.min(1, processedSeconds / durationSeconds));
+        setJobProgress(job, 10 + (ratio * 86), "Đang chuyển đổi audio");
+      } else if (processedSeconds > 0) {
+        setJobProgress(job, Math.min(96, Math.max(job.progress + 1, 15)), "Đang chuyển đổi audio");
+      }
+    });
+
+    proc.on("error", () => reject(createHttpError(500, "Không thể chạy ffmpeg.")));
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(createHttpError(500, `ffmpeg tải audio thất bại (code ${code}). ${stderr.slice(-320)}`));
+    });
+  });
+
+  setJobProgress(job, 100, "Hoàn tất");
+  job.status = "done";
+  job.file_path = `/api/giongnoi/file?id=${encodeURIComponent(job.id)}`;
+}
+
 function buildSourceHeaders(sourceUrl, refererOverride = "") {
   const headers = { ...DEFAULT_HEADERS };
   try {
@@ -3193,6 +3323,118 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
         error: sanitizeClientErrorMessage(error.message || "Khong the truy van Facebook ID.")
       });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/giongnoi/jobs") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      const sourceUrl = String(body.url || "").trim();
+      const format = String(body.format || "mp3").trim().toLowerCase();
+      const filename = sanitizeLooseFilename(body.filename || "zalo-audio-link");
+
+      if (!sourceUrl) {
+        return sendJson(res, 400, { error: "Thiếu link m3u8." });
+      }
+      if (!["mp3", "wav", "aac"].includes(format)) {
+        return sendJson(res, 400, { error: "Định dạng audio không hợp lệ." });
+      }
+
+      let parsed;
+      try {
+        parsed = new URL(sourceUrl);
+      } catch {
+        return sendJson(res, 400, { error: "Link m3u8 không hợp lệ." });
+      }
+
+      if (!/^https?:$/i.test(parsed.protocol) || isUnsafeHostname(parsed.hostname) || !isAllowedGiongNoiHostname(parsed.hostname)) {
+        return sendJson(res, 400, { error: "Nguồn audio không được hỗ trợ." });
+      }
+
+      const jobId = createJobId();
+      const job = {
+        id: jobId,
+        kind: "giongnoi",
+        sourceUrl,
+        format,
+        filename,
+        status: "queued",
+        progress: 0,
+        stage: "Đang xếp hàng",
+        error: "",
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        tempDir: "",
+        outputPath: "",
+        file_path: ""
+      };
+
+      processJobs.set(jobId, job);
+      runGiongNoiFfmpegJob(job).catch((error) => {
+        job.status = "error";
+        job.error = error.message || "Không thể xử lý audio.";
+        setJobProgress(job, job.progress || 0, "Thất bại");
+      });
+
+      sendJson(res, 200, { job_id: jobId, status: job.status, progress: job.progress, stage: job.stage });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode) || 500;
+      sendJson(res, statusCode >= 400 && statusCode < 600 ? statusCode : 500, {
+        error: error.message || "Không thể tạo job audio."
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/giongnoi/jobs/")) {
+    try {
+      const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+      const parsed = new URL(req.url, base);
+      const id = decodeURIComponent(parsed.pathname.slice("/api/giongnoi/jobs/".length));
+      const job = getJobByKind(id, "giongnoi");
+      if (!job) return sendJson(res, 404, { error: "Không tìm thấy job audio." });
+
+      sendJson(res, 200, {
+        job_id: job.id,
+        status: job.status,
+        progress: job.progress,
+        stage: job.stage,
+        error: job.error || "",
+        filename: job.filename || "",
+        file_path: job.status === "done" ? (job.file_path || `/api/giongnoi/file?id=${encodeURIComponent(job.id)}`) : ""
+      });
+    } catch (error) {
+      sendJson(res, 500, { error: error.message || "Không đọc được tiến độ job audio." });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/giongnoi/file?")) {
+    try {
+      const base = `http://${req.headers.host || `localhost:${PORT}`}`;
+      const parsed = new URL(req.url, base);
+      const id = String(parsed.searchParams.get("id") || "").trim();
+      const job = getJobByKind(id, "giongnoi");
+      if (!job || job.status !== "done" || !job.outputPath) {
+        return sendJson(res, 404, { error: "Không thấy file đã xử lý." });
+      }
+
+      const stat = await fs.promises.stat(job.outputPath).catch(() => null);
+      if (!stat?.isFile()) {
+        return sendJson(res, 404, { error: "File đã xử lý không còn tồn tại." });
+      }
+
+      res.writeHead(200, {
+        "Content-Type": getAudioMimeType(path.extname(job.outputPath).slice(1)),
+        "Content-Length": stat.size,
+        "Content-Disposition": `attachment; filename="${job.filename || path.basename(job.outputPath)}"`,
+        "Cache-Control": "no-store"
+      });
+      fs.createReadStream(job.outputPath).pipe(res);
+    } catch (error) {
+      sendJson(res, 500, { error: error.message || "Không thể tải file audio." });
     }
     return;
   }
